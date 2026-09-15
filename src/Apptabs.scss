@@ -1,0 +1,38 @@
+.main-tab-bar {
+  --background: var(--ion-toolbar-background);
+  --border: none;
+
+  border-top: 1px solid var(--ion-border-color);
+
+  height: 60px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+
+.main-tab-button {
+  --color: var(--ion-color-medium);
+  --color-selected: var(--ion-color-primary);
+
+  // Soft pill glow behind the icon+label when a tab is active
+  // (native Ionic MD-mode indicator — no extra markup needed)
+  --indicator-color: rgba(var(--ion-color-primary-rgb), 0.12);
+
+  font-weight: 600;
+}
+
+.main-tab-button ion-icon {
+  font-size: 22px;
+  transition: transform 0.15s ease;
+}
+
+.main-tab-button.tab-selected ion-icon {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.main-tab-button ion-label {
+  font-size: 10.5px;
+  letter-spacing: 0.15px;
+  margin-top: 3px;
+}

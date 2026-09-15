@@ -1,0 +1,337 @@
+/* ==========================================================
+   SETTINGS PAGE
+   Theme-aware: Light / Dark / Modern
+========================================================== */
+
+.settings-page {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+.settings-content {
+  --background: var(--ion-background-color);
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+/* ==========================================================
+   HEADER
+========================================================== */
+
+.settings-header {
+  box-shadow: none;
+}
+
+.settings-toolbar {
+  --background: var(--ion-toolbar-background);
+  --color: var(--ion-text-color);
+
+  --border-width: 0;
+  --border-color: var(--ion-toolbar-border-color);
+
+  min-height: 64px;
+}
+
+.settings-toolbar ion-title {
+  color: var(--ion-text-color);
+
+  font-size: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.settings-back-button {
+  --color: var(--ion-text-color);
+  --icon-font-size: 28px;
+}
+
+/* ==========================================================
+   LIST
+========================================================== */
+
+.settings-list {
+  margin: 0;
+  padding: 0;
+
+  background: var(--ion-background-color);
+}
+
+/* ==========================================================
+   SETTINGS SECTION
+========================================================== */
+
+.settings-section {
+  margin-top: 28px;
+}
+
+/* ==========================================================
+   SETTINGS ITEM
+========================================================== */
+
+.settings-item {
+  --background: var(--linkup-card-bg);
+
+  --background-activated: var(--ion-color-light);
+  --background-focused: var(--ion-color-light);
+
+  --color: var(--ion-text-color);
+
+  --min-height: 68px;
+
+  --padding-start: 30px;
+  --padding-end: 28px;
+
+  --inner-padding-end: 0;
+
+  border-bottom: 1px solid var(--ion-border-color);
+
+  font-size: 17px;
+  font-weight: 400;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+/* ==========================================================
+   ICON
+========================================================== */
+
+.settings-icon {
+  color: var(--ion-color-medium);
+
+  font-size: 29px;
+
+  margin-right: 24px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ==========================================================
+   ARROW
+========================================================== */
+
+.settings-arrow {
+  color: var(--ion-color-medium);
+
+  font-size: 24px;
+
+  margin-left: 12px;
+}
+
+/* ==========================================================
+   SOCIAL ICONS
+========================================================== */
+
+.social-icon {
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-right: 22px;
+
+  font-size: 25px;
+  font-weight: 500;
+}
+
+/* ==========================================================
+   INSTAGRAM
+   Brand color stays the same across themes
+========================================================== */
+
+.instagram {
+  background: linear-gradient(
+    135deg,
+    #feda75,
+    #fa7e1e,
+    #d62976,
+    #962fbf,
+    #4f5bd5
+  );
+
+  color: #ffffff;
+}
+
+/* ==========================================================
+   TIKTOK
+========================================================== */
+
+.tiktok {
+  background: var(--ion-color-light);
+  color: var(--ion-text-color);
+
+  border: 1px solid var(--ion-border-color);
+}
+
+/* ==========================================================
+   LABEL
+========================================================== */
+
+.settings-item ion-label {
+  color: var(--ion-text-color);
+
+  font-size: 17px;
+
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ==========================================================
+   DANGER SECTION
+========================================================== */
+
+.danger-section {
+  margin-top: 28px;
+}
+
+.danger-item ion-label {
+  color: var(--ion-color-danger);
+}
+
+.logout-item ion-label {
+  color: var(--ion-color-danger);
+}
+
+/* ==========================================================
+   BOTTOM LOGO
+========================================================== */
+
+.settings-bottom-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding-top: 65px;
+  padding-bottom: 25px;
+}
+
+/* ==========================================================
+   LOGO DOTS
+   Use primary/secondary brand colors instead of fixed teal
+========================================================== */
+
+.logo-dots {
+  width: 70px;
+  height: 70px;
+
+  display: grid;
+
+  grid-template-columns: repeat(3, 12px);
+  grid-template-rows: repeat(3, 12px);
+
+  gap: 5px;
+
+  justify-content: center;
+  align-content: center;
+}
+
+.logo-dots span {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  background: var(--ion-color-primary);
+
+  box-shadow: 0 0 8px rgba(var(--ion-color-primary-rgb), 0.35);
+}
+
+/* ==========================================================
+   MODERN THEME ENHANCEMENT
+   Extra glass/gradient feel without changing component code
+========================================================== */
+
+[data-theme="modern"] .settings-item {
+  --background: var(--linkup-card-bg);
+
+  border-bottom: 1px solid var(--linkup-card-border);
+
+  box-shadow: 0 2px 10px var(--linkup-card-shadow);
+}
+
+[data-theme="modern"] .settings-toolbar {
+  --background: var(--ion-toolbar-background);
+}
+
+[data-theme="modern"] .settings-icon {
+  color: var(--ion-color-primary);
+}
+
+[data-theme="modern"] .settings-arrow {
+  color: var(--ion-color-secondary);
+}
+
+/* ==========================================================
+   DARK THEME
+========================================================== */
+
+[data-theme="dark"] .settings-icon {
+  color: var(--ion-color-medium);
+}
+
+[data-theme="dark"] .settings-arrow {
+  color: var(--ion-color-medium);
+}
+
+/* ==========================================================
+   LIGHT THEME
+========================================================== */
+
+[data-theme="light"] .settings-item {
+  --background: var(--linkup-card-bg);
+
+  border-bottom: 1px solid var(--linkup-card-border);
+}
+
+[data-theme="light"] .settings-icon {
+  color: var(--ion-color-medium);
+}
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 576px) {
+
+  .settings-toolbar {
+    min-height: 60px;
+  }
+
+  .settings-toolbar ion-title {
+    font-size: 19px;
+  }
+
+  .settings-item {
+    --min-height: 68px;
+
+    --padding-start: 30px;
+    --padding-end: 25px;
+
+    font-size: 16px;
+  }
+
+  .settings-icon {
+    font-size: 28px;
+    margin-right: 23px;
+  }
+
+  .settings-arrow {
+    font-size: 23px;
+  }
+
+  .settings-item ion-label {
+    font-size: 16px;
+  }
+
+  .settings-section {
+    margin-top: 26px;
+  }
+}

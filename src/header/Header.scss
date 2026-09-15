@@ -1,0 +1,150 @@
+.main-header {
+  --background: transparent;
+}
+
+.main-toolbar {
+  // Reads --ion-toolbar-background per theme — in "modern" this is
+  // already a gradient (see variables.scss), so it just works here.
+  --background: var(--ion-toolbar-background);
+  --border-color: var(--ion-toolbar-border-color);
+  --min-height: 68px;
+  --color: var(--ion-text-color);
+
+  padding: 6px 10px;
+
+  box-shadow: 0 2px 16px rgba(var(--ion-color-dark-rgb), 0.06);
+
+  // Frosted-glass edge for the modern theme — quiet everywhere else
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+
+/* =========================
+   BRAND
+========================= */
+
+.brand-container {
+  display: flex;
+  align-items: center;
+
+  margin-left: 8px;
+}
+
+/* Logo */
+
+.brand-logo {
+  position: relative;
+
+  width: 43px;
+  height: 43px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: var(--linkup-radius-md, 14px);
+
+  background: var(--linkup-gradient);
+
+  box-shadow: 0 5px 14px rgba(var(--ion-color-primary-rgb), 0.35);
+}
+
+.brand-logo ion-icon {
+  font-size: 25px;
+  color: #ffffff;
+}
+
+// Small live-status pulse — a quiet nod to "someone's out there right now"
+.brand-logo-pulse {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+
+  width: 12px;
+  height: 12px;
+
+  border-radius: 50%;
+
+  background: var(--linkup-status-online, #2dd4a7);
+  border: 2px solid var(--ion-toolbar-border-color);
+
+  animation: linkup-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes linkup-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(45, 212, 167, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo-pulse {
+    animation: none;
+  }
+}
+
+/* =========================
+   BRAND TEXT
+========================= */
+
+.brand-text {
+  margin-left: 10px;
+  line-height: 1;
+}
+
+.brand-name {
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+
+  background: var(--linkup-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-subtitle {
+  margin-top: 5px;
+
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.7px;
+
+  color: var(--ion-color-medium);
+}
+
+/* =========================
+   HEADER BUTTONS
+========================= */
+
+.header-action {
+  --color: var(--ion-color-medium);
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.08);
+  --background-focused: rgba(var(--ion-color-primary-rgb), 0.12);
+  --border-radius: 10px;
+
+  --padding-start: 7px;
+  --padding-end: 7px;
+
+  margin: 0 1px;
+
+  transition: color 0.15s ease;
+}
+
+.header-action ion-icon {
+  font-size: 21px;
+}
+
+.header-action:hover {
+  --color: var(--ion-color-primary);
+}
+
+// Keyboard focus must stay visible — don't rely on hover alone
+.header-action:focus-visible {
+  --color: var(--ion-color-primary);
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}

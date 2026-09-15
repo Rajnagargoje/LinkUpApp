@@ -1,0 +1,7 @@
+{
+  "name": "moviezTomb",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

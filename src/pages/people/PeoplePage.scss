@@ -1,0 +1,543 @@
+.people-content {
+  --background: var(--ion-background-color);
+}
+
+/* =====================================================
+   LOCATION MESSAGE
+===================================================== */
+
+.location-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin: 12px;
+  padding: 12px 14px;
+
+  border-radius: var(--linkup-radius-lg, 18px);
+
+  background: var(--linkup-card-bg);
+
+  border: 1px solid var(--ion-border-color);
+}
+
+.location-message > ion-icon {
+  font-size: 25px;
+  color: var(--ion-color-primary);
+}
+
+.location-message div {
+  flex: 1;
+}
+
+.location-message strong {
+  display: block;
+
+  font-size: 14px;
+  color: var(--ion-text-color);
+}
+
+.location-message span {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 12px;
+  color: var(--ion-text-color);
+  opacity: 0.65;
+}
+
+.location-message button {
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--ion-color-primary);
+  color: #fff;
+}
+
+.location-message button ion-icon {
+  font-size: 18px;
+}
+
+/* =====================================================
+   LOCATION LOADING
+===================================================== */
+
+.location-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 8px;
+
+  font-size: 12px;
+
+  color: var(--ion-color-primary);
+}
+
+.location-loading ion-icon {
+  font-size: 16px;
+}
+
+/* =====================================================
+   FILTER CHIPS
+===================================================== */
+
+.people-filter-row {
+  display: flex;
+
+  gap: 8px;
+
+  padding: 14px 14px 6px;
+
+  overflow-x: auto;
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.people-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  flex: 0 0 auto;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 8px 16px;
+
+  border-radius: 999px;
+
+  border: 1px solid var(--ion-border-color);
+
+  background: var(--linkup-card-bg);
+
+  color: var(--ion-text-color);
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.filter-chip--active {
+  border-color: var(--ion-color-primary);
+
+  color: var(--ion-color-primary);
+
+  background: rgba(
+    var(--ion-color-primary-rgb),
+    0.1
+  );
+}
+
+.filter-chip-count {
+  font-size: 11px;
+
+  font-weight: 700;
+
+  opacity: 0.75;
+}
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.people-loading {
+  min-height: 300px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 12px;
+
+  color: var(--ion-text-color);
+
+  opacity: 0.7;
+}
+
+.people-loading ion-spinner {
+  width: 35px;
+  height: 35px;
+}
+
+/* =====================================================
+   GRID
+===================================================== */
+
+.people-grid {
+  padding: 6px 8px 0;
+}
+
+/* =====================================================
+   PROFILE CARD
+===================================================== */
+
+.people-card {
+  position: relative;
+
+  aspect-ratio: 3 / 4;
+
+  border-radius: var(
+    --linkup-radius-lg,
+    18px
+  );
+
+  overflow: hidden;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background: var(
+    --linkup-card-bg
+  );
+
+  box-shadow:
+    0 6px 18px
+    var(--linkup-card-shadow);
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.people-card:active {
+  transform: scale(0.97);
+}
+
+/* =====================================================
+   AVATAR
+===================================================== */
+
+.people-card-avatar {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--ion-color-primary),
+      var(--ion-color-secondary)
+    );
+
+  color: rgba(
+    255,
+    255,
+    255,
+    0.55
+  );
+}
+
+.people-card-avatar ion-icon {
+  font-size: 100px;
+}
+
+.people-card-avatar img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+/* =====================================================
+   ONLINE DOT
+===================================================== */
+
+.people-card-online-dot {
+  position: absolute;
+
+  top: 12px;
+  right: 12px;
+
+  width: 12px;
+  height: 12px;
+
+  border-radius: 50%;
+
+  background: var(
+    --linkup-status-online,
+    #2dd4a7
+  );
+
+  border: 2px solid
+    rgba(255, 255, 255, 0.9);
+}
+
+/* =====================================================
+   CHAT BUTTON
+===================================================== */
+
+.people-card-wave {
+  position: absolute;
+
+  bottom: 62px;
+  right: 10px;
+
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(
+    255,
+    255,
+    255,
+    0.95
+  );
+
+  color: var(--ion-color-primary);
+
+  box-shadow:
+    0 3px 8px
+    rgba(0, 0, 0, 0.25);
+
+  transition:
+    transform 0.12s ease;
+}
+
+.people-card-wave:active {
+  transform: scale(0.88);
+}
+
+.people-card-wave ion-icon {
+  font-size: 18px;
+}
+
+/* =====================================================
+   PROFILE INFO
+===================================================== */
+
+.people-card-info {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  padding: 30px 12px 10px;
+
+  background:
+    linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72),
+      rgba(0, 0, 0, 0)
+    );
+}
+
+.people-card-name-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 5px;
+}
+
+.people-card-name {
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #ffffff;
+}
+
+.people-card-verified {
+  font-size: 15px;
+
+  color: #56b8f0;
+
+  background: #ffffff;
+
+  border-radius: 50%;
+}
+
+.people-card-meta {
+  display: block;
+
+  margin-top: 2px;
+
+  font-size: 11px;
+
+  color: rgba(
+    255,
+    255,
+    255,
+    0.85
+  );
+}
+
+.people-card-distance {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  color: rgba(
+    255,
+    255,
+    255,
+    0.9
+  );
+}
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+.people-empty {
+  min-height: 400px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 30px;
+
+  text-align: center;
+}
+
+.people-empty ion-icon {
+  font-size: 70px;
+
+  color: var(--ion-color-primary);
+
+  opacity: 0.5;
+}
+
+.people-empty h2 {
+  margin:
+    14px 0 5px;
+
+  font-size: 20px;
+
+  color: var(--ion-text-color);
+}
+
+.people-empty p {
+  max-width: 280px;
+
+  margin: 0;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+
+  color: var(--ion-text-color);
+
+  opacity: 0.65;
+}
+
+.people-empty button {
+  margin-top: 18px;
+
+  padding: 11px 22px;
+
+  border: none;
+
+  border-radius: 999px;
+
+  background: var(--linkup-gradient);
+
+  color: #fff;
+
+  font-weight: 700;
+}
+
+/* =====================================================
+   CTA
+===================================================== */
+
+.people-cta-wrap {
+  padding:
+    16px 12px 24px;
+}
+
+.people-cta {
+  width: 100%;
+
+  height: 50px;
+
+  border-radius: 999px;
+
+  border: none;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  background: var(--linkup-gradient);
+
+  color: #ffffff;
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  box-shadow:
+    0 8px 20px
+    rgba(
+      var(--ion-color-primary-rgb),
+      0.35
+    );
+
+  transition:
+    transform 0.12s ease;
+}
+
+.people-cta:active {
+  transform: scale(0.98);
+}
+
+.people-cta ion-icon {
+  font-size: 18px;
+}

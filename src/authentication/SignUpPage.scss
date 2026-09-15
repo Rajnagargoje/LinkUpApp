@@ -1,0 +1,123 @@
+.signup-toolbar {
+  --background: var(--linkup-gradient);
+  --color: #ffffff;
+}
+
+.signup-back-btn {
+  --color: #ffffff;
+}
+
+.signup-content {
+  --background: var(--ion-background-color);
+}
+
+/* =========================
+   HERO IMAGE
+========================= */
+
+.auth-hero {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 4px;
+}
+
+.auth-hero-img {
+  width: 160px;
+  max-width: 60%;
+}
+
+/* =========================
+   CARD
+========================= */
+
+.auth-card {
+  --background: var(--linkup-card-bg);
+
+  border: 1px solid var(--linkup-card-border);
+  border-radius: var(--linkup-radius-lg, 20px);
+  box-shadow: 0 14px 34px var(--linkup-card-shadow);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-heading {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.auth-title {
+  margin: 0 0 4px;
+  font-size: 21px;
+  font-weight: 750;
+  color: var(--ion-text-color);
+}
+
+.auth-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+.auth-input {
+  --border-radius: var(--linkup-radius-sm, 10px);
+  --border-color: var(--ion-border-color);
+  --highlight-color-focused: var(--ion-color-primary);
+  --padding-start: 14px;
+  --padding-end: 14px;
+}
+
+/* =========================
+   CTA
+========================= */
+
+.auth-cta {
+  font-weight: 600;
+  height: 48px;
+  --border-radius: 999px;
+}
+
+.auth-cta--primary {
+  --background: var(--linkup-gradient);
+  --background-activated: var(--linkup-gradient);
+  --box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.35);
+  --color: #ffffff;
+}
+.username-availability-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 4px 0;
+  color: var(--ion-color-medium);
+
+  ion-spinner {
+    width: 14px;
+    height: 14px;
+  }
+  ion-icon {
+    font-size: 16px;
+  }
+  .available-text {
+    color: var(--ion-color-success);
+  }
+  .taken-text {
+    color: var(--ion-color-danger);
+  }
+}
+
+.username-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 4px 0;
+
+  ion-chip {
+    cursor: pointer;
+    margin: 0;
+  }
+}

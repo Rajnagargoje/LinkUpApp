@@ -1,0 +1,274 @@
+/* ==========================================================
+   LinkUp Theming — 3 themes (Light / Dark / Modern)
+   Drop into src/theme/variables.scss
+
+   HOW IT WORKS
+   - <html data-theme="light|dark|modern"> is set by ThemeContext.tsx
+   - Every block below defines the SAME variable names
+     (--ion-color-primary, --ion-background-color, etc.)
+   - Because names never change, ion-button color="primary",
+     ion-card, ion-toolbar etc. need ZERO code changes.
+   - Only the values differ per theme.
+   ========================================================== */
+
+// -----------------------------------------------------------
+// SHARED BRAND TOKENS (identical across all 3 themes)
+// Keep your logo, gradient identity, spacing etc. constant —
+// this is what makes the themes feel like the same app.
+// -----------------------------------------------------------
+:root {
+  --linkup-gradient: linear-gradient(135deg, #667eea, #764ba2);
+  --linkup-radius-sm: 8px;
+  --linkup-radius-md: 14px;
+  --linkup-radius-lg: 22px;
+  --linkup-font-heading: 600 1.1rem/1.3 -apple-system, sans-serif;
+  --linkup-status-online: #2dd4a7;
+}
+
+// -----------------------------------------------------------
+// 1. LIGHT THEME (default — applies if no data-theme is set)
+// -----------------------------------------------------------
+:root,
+[data-theme="light"] {
+  --ion-color-primary: #667eea;
+  --ion-color-primary-rgb: 102, 126, 234;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #5468d4;
+  --ion-color-primary-tint: #7f8ff0;
+
+  --ion-color-secondary: #764ba2;
+  --ion-color-secondary-rgb: 118, 75, 162;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #623d87;
+  --ion-color-secondary-tint: #8f66c2;
+
+  --ion-color-success: #2dd4a7;
+  --ion-color-success-rgb: 45, 212, 167;
+  --ion-color-success-contrast: #0d0c17;
+  --ion-color-success-contrast-rgb: 13, 12, 23;
+  --ion-color-success-shade: #27bb92;
+  --ion-color-success-tint: #42d9ae;
+
+  --ion-color-warning: #f5a962;
+  --ion-color-warning-rgb: 245, 169, 98;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #d89556;
+  --ion-color-warning-tint: #f6b271;
+
+  --ion-color-danger: #f0596e;
+  --ion-color-danger-rgb: 240, 89, 110;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #d34e61;
+  --ion-color-danger-tint: #f1697d;
+
+  --ion-color-medium: #77738a;
+  --ion-color-medium-rgb: 119, 115, 138;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #69657a;
+  --ion-color-medium-tint: #858097;
+
+  --ion-color-light: #f7f6ff;
+  --ion-color-light-rgb: 247, 246, 255;
+  --ion-color-light-contrast: #000000;
+  --ion-color-light-contrast-rgb: 0, 0, 0;
+  --ion-color-light-shade: #d9d8e0;
+  --ion-color-light-tint: #f8f7ff;
+
+  --ion-color-dark: #25233a;
+  --ion-color-dark-rgb: 37, 35, 58;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #201e33;
+  --ion-color-dark-tint: #3a3850;
+
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #25233a;
+  --ion-text-color-rgb: 37, 35, 58;
+  --ion-toolbar-background: #ffffff;
+  --ion-toolbar-border-color: #e8e3ff;
+  --ion-item-background: #ffffff;
+  --ion-border-color: #e8e3ff;
+
+  // Card surfaces
+  --linkup-card-bg: #ffffff;
+  --linkup-card-border: #eeecfb;
+  --linkup-card-shadow: rgba(37, 35, 58, 0.08);
+
+  // Chat-specific
+  --linkup-bubble-sent-bg: var(--linkup-gradient);
+  --linkup-bubble-sent-text: #ffffff;
+  --linkup-bubble-received-bg: #f7f6ff;
+  --linkup-bubble-received-text: #25233a;
+}
+
+// -----------------------------------------------------------
+// 2. DARK THEME
+// -----------------------------------------------------------
+[data-theme="dark"] {
+  --ion-color-primary: #7f8ff0;
+  --ion-color-primary-rgb: 127, 143, 240;
+  --ion-color-primary-contrast: #0d0c17;
+  --ion-color-primary-contrast-rgb: 13, 12, 23;
+  --ion-color-primary-shade: #667eea;
+  --ion-color-primary-tint: #97a4f5;
+
+  --ion-color-secondary: #8f66c2;
+  --ion-color-secondary-rgb: 143, 102, 194;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #764ba2;
+  --ion-color-secondary-tint: #b28ad9;
+
+  --ion-color-success: #42d9ae;
+  --ion-color-success-rgb: 66, 217, 174;
+  --ion-color-success-contrast: #0d0c17;
+  --ion-color-success-contrast-rgb: 13, 12, 23;
+  --ion-color-success-shade: #2dd4a7;
+  --ion-color-success-tint: #63e0bd;
+
+  --ion-color-warning: #f6b271;
+  --ion-color-warning-rgb: 246, 178, 113;
+  --ion-color-warning-contrast: #0d0c17;
+  --ion-color-warning-contrast-rgb: 13, 12, 23;
+  --ion-color-warning-shade: #f5a962;
+  --ion-color-warning-tint: #f8bd88;
+
+  --ion-color-danger: #f1697d;
+  --ion-color-danger-rgb: 241, 105, 125;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #f0596e;
+  --ion-color-danger-tint: #f37f90;
+
+  --ion-color-medium: #b6b1c9;
+  --ion-color-medium-rgb: 182, 177, 201;
+  --ion-color-medium-contrast: #0d0c17;
+  --ion-color-medium-contrast-rgb: 13, 12, 23;
+  --ion-color-medium-shade: #a09bb5;
+  --ion-color-medium-tint: #c2beD1;
+
+  --ion-color-light: #2f2d47;
+  --ion-color-light-rgb: 47, 45, 71;
+  --ion-color-light-contrast: #ffffff;
+  --ion-color-light-contrast-rgb: 255, 255, 255;
+  --ion-color-light-shade: #46435a;
+  --ion-color-light-tint: #18172a;
+
+  --ion-color-dark: #f1f0fb;
+  --ion-color-dark-rgb: 241, 240, 251;
+  --ion-color-dark-contrast: #0d0c17;
+  --ion-color-dark-contrast-rgb: 13, 12, 23;
+  --ion-color-dark-shade: #d4d3e0;
+  --ion-color-dark-tint: #ffffff;
+
+  --ion-background-color: #18172a;
+  --ion-background-color-rgb: 24, 23, 42;
+  --ion-text-color: #f1f0fb;
+  --ion-text-color-rgb: 241, 240, 251;
+  --ion-toolbar-background: #25233a;
+  --ion-toolbar-border-color: #46435a;
+  --ion-item-background: #25233a;
+  --ion-border-color: #46435a;
+
+  // Card surfaces
+  --linkup-card-bg: #201e33;
+  --linkup-card-border: #34314d;
+  --linkup-card-shadow: rgba(0, 0, 0, 0.35);
+
+  // Chat-specific
+  --linkup-bubble-sent-bg: var(--linkup-gradient);
+  --linkup-bubble-sent-text: #ffffff;
+  --linkup-bubble-received-bg: #2f2d47;
+  --linkup-bubble-received-text: #f1f0fb;
+}
+
+// -----------------------------------------------------------
+// 3. MODERN THEME
+// Bolder, gradient-forward, higher contrast accents —
+// this is the "wow" theme users opt into.
+// -----------------------------------------------------------
+[data-theme="modern"] {
+  --ion-color-primary: #667eea;
+  --ion-color-primary-rgb: 102, 126, 234;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #5468d4;
+  --ion-color-primary-tint: #7f8ff0;
+
+  --ion-color-secondary: #f0596e;
+  --ion-color-secondary-rgb: 240, 89, 110;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #d34e61;
+  --ion-color-secondary-tint: #f1697d;
+
+  --ion-color-success: #2dd4a7;
+  --ion-color-success-rgb: 45, 212, 167;
+  --ion-color-success-contrast: #0d0c17;
+  --ion-color-success-contrast-rgb: 13, 12, 23;
+  --ion-color-success-shade: #27bb92;
+  --ion-color-success-tint: #42d9ae;
+
+  --ion-color-warning: #ffb703;
+  --ion-color-warning-rgb: 255, 183, 3;
+  --ion-color-warning-contrast: #0d0c17;
+  --ion-color-warning-contrast-rgb: 13, 12, 23;
+  --ion-color-warning-shade: #e0a103;
+  --ion-color-warning-tint: #ffc02a;
+
+  --ion-color-danger: #f0596e;
+  --ion-color-danger-rgb: 240, 89, 110;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #d34e61;
+  --ion-color-danger-tint: #f1697d;
+
+  --ion-color-medium: #77738a;
+  --ion-color-medium-rgb: 119, 115, 138;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #69657a;
+  --ion-color-medium-tint: #858097;
+
+  --ion-color-light: #f0f2fe;
+  --ion-color-light-rgb: 240, 242, 254;
+  --ion-color-light-contrast: #000000;
+  --ion-color-light-contrast-rgb: 0, 0, 0;
+  --ion-color-light-shade: #d3d5e0;
+  --ion-color-light-tint: #f2f4ff;
+
+  --ion-color-dark: #18172a;
+  --ion-color-dark-rgb: 24, 23, 42;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #15142a;
+  --ion-color-dark-tint: #2f2d47;
+
+  // Deep gradient background instead of a flat color — the "modern" signature
+  --ion-background-color: #0d0c17;
+  --ion-background-color-rgb: 13, 12, 23;
+  --ion-text-color: #ffffff;
+  --ion-text-color-rgb: 255, 255, 255;
+  --ion-toolbar-background: linear-gradient(135deg, #25233a, #18172a);
+  --ion-toolbar-border-color: #3c2553;
+  --ion-item-background: #201e33;
+  --ion-border-color: #3c2553;
+
+  // Card surfaces — translucent glass, since the page background
+  // itself is dark and the toolbar is a gradient
+  --linkup-card-bg: rgba(255, 255, 255, 0.05);
+  --linkup-card-border: rgba(255, 255, 255, 0.09);
+  --linkup-card-shadow: rgba(102, 126, 234, 0.25);
+
+  // Chat-specific — full gradient bubbles both sides, differentiated by opacity
+  --linkup-bubble-sent-bg: var(--linkup-gradient);
+  --linkup-bubble-sent-text: #ffffff;
+  --linkup-bubble-received-bg: rgba(255, 255, 255, 0.06);
+  --linkup-bubble-received-text: #ffffff;
+}

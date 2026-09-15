@@ -1,0 +1,79 @@
+/* =========================
+   MODAL SHELL
+========================= */
+
+.room-modal {
+  --border-radius: var(--linkup-radius-lg, 20px);
+  --background: var(--ion-background-color);
+  --width: 90%;
+  --max-width: 500px;
+  --height: auto;
+  --max-height: 95%;
+}
+
+.room-modal-toolbar {
+  --background: var(--linkup-gradient);
+  --color: #ffffff;
+  --min-height: 56px;
+}
+
+.room-modal-close {
+  --color: #ffffff;
+  --background-hover: rgba(255, 255, 255, 0.15);
+  --border-radius: 50%;
+}
+
+.room-modal-content {
+  --background: var(--ion-background-color);
+}
+
+.room-modal-copy {
+  margin: 4px 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ion-color-medium);
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+.room-input {
+  --border-radius: var(--linkup-radius-sm, 10px);
+  --border-color: var(--ion-border-color);
+  --highlight-color-focused: var(--ion-color-primary);
+  --padding-start: 14px;
+  --padding-end: 14px;
+
+  font-size: 15px;
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+.room-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  margin-top: 24px;
+}
+
+.room-cta {
+  font-weight: 600;
+  height: 48px;
+}
+
+.room-cta--primary {
+  --background: var(--linkup-gradient);
+  --background-activated: var(--linkup-gradient);
+  --box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.35);
+  --color: #ffffff;
+}
+
+.room-cta--secondary {
+  --color: var(--ion-color-secondary);
+  --border-color: var(--ion-color-secondary);
+  --border-width: 1.5px;
+}

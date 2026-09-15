@@ -1,0 +1,193 @@
+.home-content {
+  --background: var(--ion-background-color);
+}
+
+.home-content::part(scroll) {
+  padding: 14px 12px 28px;
+}
+
+/* =========================
+   CARD SHELL
+   One shared shell, theming and accent colors set per-variant below.
+========================= */
+
+.feature-card {
+  --background: var(--linkup-card-bg);
+
+  margin: 0 0 14px;
+  border-radius: var(--linkup-radius-lg, 20px);
+  border: 1px solid var(--linkup-card-border);
+  box-shadow: 0 8px 24px var(--linkup-card-shadow);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.feature-card:active {
+  transform: scale(0.99);
+}
+
+.feature-card ion-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+
+  padding-bottom: 6px;
+}
+
+.feature-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.feature-card ion-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ion-text-color);
+}
+
+.feature-copy {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ion-color-medium);
+}
+
+/* =========================
+   ICON BADGE
+   Same shape language as the header logo mark.
+========================= */
+
+.feature-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: var(--linkup-radius-md, 14px);
+  color: #ffffff;
+  font-size: 21px;
+}
+
+.feature-icon--primary {
+  background: var(--linkup-gradient);
+  box-shadow: 0 5px 14px rgba(var(--ion-color-primary-rgb), 0.35);
+}
+
+.feature-icon--secondary {
+  background: linear-gradient(135deg, var(--ion-color-secondary), var(--ion-color-secondary-shade));
+  box-shadow: 0 5px 14px rgba(var(--ion-color-secondary-rgb), 0.32);
+}
+
+.feature-icon--success {
+  background: linear-gradient(135deg, var(--ion-color-success), var(--ion-color-success-shade));
+  box-shadow: 0 5px 14px rgba(var(--ion-color-success-rgb), 0.32);
+}
+
+.feature-icon--warning {
+  background: linear-gradient(135deg, var(--ion-color-warning), var(--ion-color-warning-shade));
+  box-shadow: 0 5px 14px rgba(var(--ion-color-warning-rgb), 0.32);
+  color: var(--ion-color-warning-contrast);
+}
+
+/* =========================
+   STATUS PILL
+   Replaces the bare subtitle number with something legible + alive.
+========================= */
+
+.feature-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.feature-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.feature-pill--primary {
+  color: var(--ion-color-primary);
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+}
+
+.feature-pill--secondary {
+  color: var(--ion-color-secondary);
+  background: rgba(var(--ion-color-secondary-rgb), 0.12);
+}
+
+.feature-pill--success {
+  color: var(--ion-color-success);
+  background: rgba(var(--ion-color-success-rgb), 0.14);
+}
+
+.feature-pill--warning {
+  color: var(--ion-color-warning-shade);
+  background: rgba(var(--ion-color-warning-rgb), 0.16);
+}
+
+/* =========================
+   HERO VARIANT
+   The one card that gets the boldest treatment.
+========================= */
+
+.feature-card--hero {
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.25);
+  box-shadow: 0 10px 28px rgba(var(--ion-color-primary-rgb), 0.22);
+}
+
+.feature-card--hero ion-card-title {
+  font-size: 20px;
+}
+
+/* =========================
+   CTA BUTTONS
+   Solid on the hero card, outline elsewhere so the hero stays
+   the visually loudest action on the page.
+========================= */
+
+.feature-cta--primary {
+  --background: var(--linkup-gradient);
+  --background-activated: var(--linkup-gradient);
+  --box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.35);
+  --color: #ffffff;
+  font-weight: 600;
+}
+
+.feature-cta--secondary {
+  --color: var(--ion-color-secondary);
+  --border-color: var(--ion-color-secondary);
+  --border-width: 1.5px;
+  font-weight: 600;
+}
+
+.feature-cta--success {
+  --color: var(--ion-color-success-shade);
+  --border-color: var(--ion-color-success);
+  --border-width: 1.5px;
+  font-weight: 600;
+}
+
+.feature-cta--warning {
+  --color: var(--ion-color-warning-shade);
+  --border-color: var(--ion-color-warning);
+  --border-width: 1.5px;
+  font-weight: 600;
+}
