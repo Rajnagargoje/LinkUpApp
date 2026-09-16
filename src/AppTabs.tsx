@@ -113,7 +113,7 @@ const AppTabs: React.FC = () => {
         <SettingsPage />
       </Route>
       {/* Person detail — opened from the People grid */}
-      <Route exact path="/app/person/:id">
+      <Route exact path="/app/person/:personId">
         <PersonDetailPage />
       </Route>
     </>

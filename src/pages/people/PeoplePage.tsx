@@ -16,17 +16,18 @@ import {
   checkmarkCircle,
   chatbubbleEllipsesOutline,
   locationOutline,
-  personCircleOutline,
   refreshOutline,
+  personCircleOutline,
 } from "ionicons/icons";
 
 import { useCallback, useEffect, useState } from "react";
 
 import Header from "../../header/Header";
 import "./PeoplePage.scss";
-import { Person } from "../../common/person.model";
+
 import { getNearbyPeople, updateLocation } from "../../service/userService";
 import { useAuth } from "../../contexts/AuthContext";
+import { Persons } from "../../common/person.model";
 
 type FilterType = "nearby" | "online" | "new" | "popular";
 
@@ -51,7 +52,7 @@ const FILTERS = [
 
 const PeoplePage: React.FC = () => {
   const { user } = useAuth();
-  const [people, setPeople] = useState<Person[]>([]);
+  const [people, setPeople] = useState<Persons[]>([]);
   const router = useIonRouter();
   const [activeFilter, setActiveFilter] = useState<FilterType>("nearby");
 
@@ -192,10 +193,10 @@ const PeoplePage: React.FC = () => {
   const getFilteredPeople = () => {
     switch (activeFilter) {
       case "online":
-        return people.filter((person) => person.online);
+        return people.filter((Persons) => Persons.online);
 
       case "new":
-        return people.filter((person) => person.meta === "New here");
+        return people.filter((Persons) => Persons.meta === "New here");
 
       case "popular":
         /*
@@ -233,15 +234,15 @@ const PeoplePage: React.FC = () => {
    * ----------------------------------------------------
    */
 
-  const handleChat = (person: Person) => {
-    console.log("Start chat with:", person);
+  const handleChat = (Persons: Persons) => {
+    console.log("Start chat with:", Persons);
 
     /*
      * Later:
      *
      * history.push("/app/chatPage", {
-     *   receiverId: person.id,
-     *   username: person.name
+     *   receiverId: Persons.id,
+     *   username: Persons.name
      * });
      */
   };
@@ -252,10 +253,10 @@ const PeoplePage: React.FC = () => {
    * ----------------------------------------------------
    */
 
-  const handleProfileClick = (person: Person) => {
-    console.log("Open profile:", person);
+  const handleProfileClick = (Persons: Persons) => {
+    console.log("Open profile:", Persons.publicId);
 
-    router.push(`/app/person/${person.id}`);
+    router.push(`/app/person/${Persons.publicId}`);
   };
 
   /*
@@ -310,13 +311,16 @@ const PeoplePage: React.FC = () => {
 
               {filter.id === "online" && (
                 <span className="filter-chip-count">
-                  {people.filter((person) => person.online).length}
+                  {people.filter((Persons) => Persons.online).length}
                 </span>
               )}
 
               {filter.id === "new" && (
                 <span className="filter-chip-count">
-                  {people.filter((person) => person.meta === "New here").length}
+                  {
+                    people.filter((Persons) => Persons.meta === "New here")
+                      .length
+                  }
                 </span>
               )}
             </button>
@@ -370,17 +374,17 @@ const PeoplePage: React.FC = () => {
         {!loading && filteredPeople.length > 0 && (
           <IonGrid className="people-grid">
             <IonRow>
-              {filteredPeople.map((person) => (
-                <IonCol size="6" key={person.id}>
+              {filteredPeople.map((Persons) => (
+                <IonCol size="6" key={Persons.publicId}>
                   <div
                     className="people-card"
-                    onClick={() => handleProfileClick(person)}
+                    onClick={() => handleProfileClick(Persons)}
                   >
                     {/* PROFILE IMAGE */}
 
                     <div className="people-card-avatar">
-                      {person.profilePhoto ? (
-                        <img src={person.profilePhoto} alt={person.name} />
+                      {Persons.profilePhoto ? (
+                        <img src={Persons.profilePhoto} alt={Persons.name} />
                       ) : (
                         <IonIcon icon={personCircleOutline} />
                       )}
@@ -388,7 +392,7 @@ const PeoplePage: React.FC = () => {
 
                     {/* ONLINE */}
 
-                    {person.online && (
+                    {Persons.online && (
                       <span
                         className="people-card-online-dot"
                         aria-hidden="true"
@@ -399,11 +403,11 @@ const PeoplePage: React.FC = () => {
 
                     <button
                       className="people-card-wave"
-                      aria-label={`Message ${person.name}`}
+                      aria-label={`Message ${Persons.name}`}
                       onClick={(event) => {
                         event.stopPropagation();
 
-                        handleChat(person);
+                        handleChat(Persons);
                       }}
                     >
                       <IonIcon icon={chatbubbleEllipsesOutline} />
@@ -414,10 +418,10 @@ const PeoplePage: React.FC = () => {
                     <div className="people-card-info">
                       <div className="people-card-name-row">
                         <span className="people-card-name">
-                          {person.name}, {person.age}
+                          {Persons.name}, {Persons.age}
                         </span>
 
-                        {person.verified && (
+                        {Persons.verified && (
                           <IonIcon
                             icon={checkmarkCircle}
                             className="people-card-verified"
@@ -426,13 +430,13 @@ const PeoplePage: React.FC = () => {
                       </div>
 
                       <span className="people-card-meta">
-                        {person.online
+                        {Persons.online
                           ? "Active now"
-                          : person.meta || "Offline"}
+                          : Persons.meta || "Offline"}
                       </span>
 
                       <span className="people-card-distance">
-                        📍 {person.distanceKm.toFixed(1)} km away
+                        📍 {Persons.distanceKm.toFixed(1)} km away
                       </span>
                     </div>
                   </div>

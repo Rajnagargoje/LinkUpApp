@@ -23,11 +23,40 @@
    BRAND
 ========================= */
 
-.brand-container {
-  display: flex;
-  align-items: center;
+/* =========================
+   BRAND TITLE (centered)
+========================= */
 
-  margin-left: 8px;
+.brand-title {
+  padding: 0;
+  text-align: center;
+}
+
+.brand-title.ion-title-large {
+  // in case large-title mode ever gets applied here
+  text-align: center;
+}
+
+.brand-name {
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+
+  background: var(--linkup-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-subtitle {
+  margin-top: 2px;
+
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.7px;
+
+  color: var(--ion-color-medium);
 }
 
 /* Logo */
@@ -90,10 +119,6 @@
    BRAND TEXT
 ========================= */
 
-.brand-text {
-  margin-left: 10px;
-  line-height: 1;
-}
 
 .brand-name {
   font-size: 21px;

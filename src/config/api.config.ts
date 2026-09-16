@@ -32,6 +32,7 @@ export const ENDPOINTS = {
   verifyEmailCode: "/auth/email/verify-code", // POST { code }
   updateLocation: (username: string) => `/users/${username}/location`,
   nearbyPeople: (username: string) => `/people/${username}/nearby`,
+  getPersonProfile: (username: string) => `/people/${username}`,
 };
 
 // STOMP destinations used by socketService. Adjust to match your
