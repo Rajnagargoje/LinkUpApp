@@ -1,3 +1,9 @@
+export type PersonConnectionStatus =
+  | "NONE"
+  | "REQUEST_SENT"
+  | "REQUEST_RECEIVED"
+  | "CONNECTED";
+
 export interface Persons {
   publicId: string;
   name: string;
@@ -7,6 +13,8 @@ export interface Persons {
   online: boolean;
   verified?: boolean;
   meta?: string;
+
+  connectionStatus?: PersonConnectionStatus;
 }
 
 export type RelationshipStatus =

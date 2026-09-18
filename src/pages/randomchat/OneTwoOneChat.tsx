@@ -37,12 +37,14 @@ import {
   pulse,
   personAddOutline,
   personCircleOutline,
+  checkmarkOutline,
 } from "ionicons/icons";
 import React, { useEffect, useRef, useState } from "react";
 import "./OneTwoOneChat.scss";
 import { useHistory, useLocation } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import socketService from "../../service/socketService";
+import { sendConnectionRequest } from "../../service/connectionService";
 
 interface Message {
   sender: string;
@@ -56,8 +58,11 @@ const OneTwoOneChat: React.FC = () => {
   const [connected, setConnected] = useState(socketService.isConnected());
 
   const contentRef = useRef<HTMLIonContentElement | null>(null);
-
+  const personId = "";
   const { user } = useAuth();
+  const [connectionLoading, setConnectionLoading] = useState(false);
+
+  const [connectionSent, setConnectionSent] = useState(false);
   // Real, logged-in username instead of the previous hardcoded "Ganesh".
   const username = user?.username ?? "You";
 
@@ -96,6 +101,23 @@ const OneTwoOneChat: React.FC = () => {
 
     // Clear input
     setInput("");
+  };
+  const handleAddPerson = async () => {
+    if (!personId) {
+      return;
+    }
+
+    try {
+      setConnectionLoading(true);
+
+      await sendConnectionRequest(personId);
+
+      setConnectionSent(true);
+    } catch (error) {
+      console.error("Failed to send connection request:", error);
+    } finally {
+      setConnectionLoading(false);
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -232,8 +254,17 @@ const OneTwoOneChat: React.FC = () => {
         <IonButton fill="clear">
           <IonIcon size="medium" slot="icon-only" icon={colorPaletteOutline} />
         </IonButton>
-        <IonButton fill="clear">
-          <IonIcon size="medium" slot="icon-only" icon={personAddOutline} />
+        <IonButton
+          fill="clear"
+          onClick={handleAddPerson}
+          disabled={connectionLoading || connectionSent}
+        >
+          <IonIcon
+            size="medium"
+            slot="icon-only"
+            icon={connectionSent ? checkmarkOutline : personAddOutline}
+          />{" "}
+          {/* {connectionSent ? "Requested" : "Add Person"} */}
         </IonButton>
       </IonToolbar>
 

@@ -21,18 +21,45 @@ export const WS_ENDPOINT = `${API_HOST}/chat`;
 export const ENDPOINTS = {
   register: "/user/register",
   login: "/user/login",
-  checkUsername: "/user/check-username", // GET ?username=... — public
-  me: "/user/me", // GET current user profile
-  updateProfile: "/user/me", // PATCH — onboarding + later profile edits
-  logout: "/user/logout", // POST, best-effort (JWT is stateless client-side)
-  deleteAccount: "/user/me", // DELETE
-  updateStatus: "/user/status", // PATCH ?status=ONLINE|OFFLINE|BUSY — query param, NOT a body
-  photos: "/user/me/photos", // POST (multipart) to add, DELETE ?url=... to remove
-  sendEmailCode: "/auth/email/send-code", // POST, no body
-  verifyEmailCode: "/auth/email/verify-code", // POST { code }
+  checkUsername: "/user/check-username",
+  me: "/user/me",
+  updateProfile: "/user/me",
+  logout: "/user/logout",
+  deleteAccount: "/user/me",
+  updateStatus: "/user/status",
+  photos: "/user/me/photos",
+
+  sendEmailCode: "/auth/email/send-code",
+  verifyEmailCode: "/auth/email/verify-code",
+
   updateLocation: (username: string) => `/users/${username}/location`,
+
   nearbyPeople: (username: string) => `/people/${username}/nearby`,
+
   getPersonProfile: (username: string) => `/people/${username}`,
+
+  // -----------------------------
+  // CONNECTIONS
+  // -----------------------------
+
+  sendConnectionRequest: (publicId: string) =>
+    `/connections/request/${publicId}`,
+
+  receivedRequests: "/connections/requests",
+
+  sentRequests: "/connections/sent",
+
+  acceptConnection: (connectionId: number) =>
+    `/connections/${connectionId}/accept`,
+
+  rejectConnection: (connectionId: number) =>
+    `/connections/${connectionId}/reject`,
+
+  friends: "/connections/friends",
+
+  connectionStatus: (publicId: string) => `/connections/status/${publicId}`,
+
+  unfriend: (publicId: string) => `/connections/${publicId}`,
 };
 
 // STOMP destinations used by socketService. Adjust to match your

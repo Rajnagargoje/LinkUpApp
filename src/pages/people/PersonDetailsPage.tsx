@@ -20,6 +20,7 @@ import "./PersonDetailPage.scss";
 import { Person } from "../../common/person.model";
 import { getPersonProfile } from "../../service/peopleService";
 import { formatRelativeTime, toTitleCase } from "../../config/date.time.format";
+import { sendConnectionRequest } from "../../service/connectionService";
 
 type Tab = "about" | "posts";
 
@@ -34,10 +35,11 @@ const PersonDetailPage: React.FC = () => {
 
   const [activePhoto, setActivePhoto] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("about");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "NONE" | "REQUEST_SENT" | "REQUEST_RECEIVED" | "CONNECTED"
+  >("NONE");
 
-  const [connectState, setConnectState] = useState<"idle" | "requested">(
-    "idle",
-  );
+  const [connectionLoading, setConnectionLoading] = useState(false);
 
   useEffect(() => {
     if (!personId) {
@@ -53,6 +55,7 @@ const PersonDetailPage: React.FC = () => {
 
         const profile = await getPersonProfile(personId);
         setPerson(profile.data);
+        setConnectionStatus(profile.data.connectionStatus ?? "NONE");
         setActivePhoto(0);
       } catch (error) {
         console.error("Failed to load person profile:", error);
@@ -65,6 +68,28 @@ const PersonDetailPage: React.FC = () => {
 
     loadPersonProfile();
   }, [personId]);
+
+  const handleConnect = async () => {
+    if (!person) {
+      return;
+    }
+
+    if (connectionStatus !== "NONE") {
+      return;
+    }
+
+    try {
+      setConnectionLoading(true);
+
+      await sendConnectionRequest(person.id);
+
+      setConnectionStatus("REQUEST_SENT");
+    } catch (error) {
+      console.error("Failed to send connection request:", error);
+    } finally {
+      setConnectionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -106,10 +131,6 @@ const PersonDetailPage: React.FC = () => {
       if (tappedRight) return Math.min(prev + 1, photoCount - 1);
       return Math.max(prev - 1, 0);
     });
-  };
-
-  const handleConnect = () => {
-    setConnectState((prev) => (prev === "idle" ? "requested" : "idle"));
   };
 
   const handleMessage = () => {
@@ -299,20 +320,47 @@ const PersonDetailPage: React.FC = () => {
           <IonIcon icon={closeOutline} />
         </button>
 
-        <button
-          className={`action-btn action-btn--connect ${
-            connectState === "requested" ? "action-btn--connect-active" : ""
-          }`}
-          onClick={handleConnect}
-        >
-          <IonIcon
-            icon={
-              connectState === "requested" ? checkmarkOutline : personAddOutline
-            }
-          />
-          {connectState === "requested" ? "Requested" : "Connect"}
-        </button>
+        {connectionStatus === "NONE" && (
+          <button
+            className="action-btn action-btn--connect"
+            onClick={handleConnect}
+            disabled={connectionLoading}
+          >
+            <IonIcon icon={personAddOutline} />
 
+            {connectionLoading ? "Sending..." : "Connect"}
+          </button>
+        )}
+
+        {connectionStatus === "REQUEST_SENT" && (
+          <button
+            className="action-btn action-btn--connect action-btn--connect-active"
+            disabled
+          >
+            <IonIcon icon={checkmarkOutline} />
+            Requested
+          </button>
+        )}
+
+        {connectionStatus === "REQUEST_RECEIVED" && (
+          <button
+            className="action-btn action-btn--connect"
+            onClick={() => history.push("/app/friends")}
+          >
+            <IonIcon icon={personAddOutline} />
+            Respond
+          </button>
+        )}
+
+        {connectionStatus === "CONNECTED" && (
+          <button
+            className="action-btn action-btn--connect action-btn--connect-active"
+            disabled
+          >
+            <IonIcon icon={checkmarkOutline} />
+            Friends
+          </button>
+        )}
         <button
           className="action-btn action-btn--message"
           onClick={handleMessage}
