@@ -115,6 +115,21 @@
   display: none;
 }
 
+// Shown over the avatar while a new photo is uploading — reuses the
+// same radius/position as the image itself so it just sits on top.
+.profile-photo-uploading {
+  position: absolute;
+  inset: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+}
+
 .profile-complete {
   position: absolute;
   bottom: -4px;

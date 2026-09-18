@@ -1,8 +1,14 @@
-import React, { useRef, useState } from "react";
-import { IonPage, IonContent, IonIcon, IonAvatar, IonRow } from "@ionic/react";
+import React, { useMemo, useRef, useState } from "react";
+import {
+  IonPage,
+  IonContent,
+  IonIcon,
+  IonAvatar,
+  IonRow,
+  IonSpinner,
+} from "@ionic/react";
 
 import {
-  settingsOutline,
   createOutline,
   airplane,
   eyeOffOutline,
@@ -11,34 +17,32 @@ import {
   chatbubbleEllipsesOutline,
 } from "ionicons/icons";
 
+import toast from "react-hot-toast";
 import { useHistory } from "react-router";
 import "./Me.scss";
 import Header from "../../header/Header";
 import { useAuth } from "../../contexts/AuthContext";
+import { Gender, LookingFor } from "../../common/user.model";
+import { uploadPhoto } from "../../service/userService";
 
 type Tab = "about" | "posts" | "connections";
 
-interface Connection {
-  id: string;
-  name: string;
-}
+const GENDER_LABELS: Record<Gender, string> = {
+  MALE: "Male",
+  FEMALE: "Female",
+  NON_BINARY: "Non-binary",
+  PREFER_NOT_TO_SAY: "Prefers not to say",
+};
 
-const INTEREST_OPTIONS = [
-  { id: "bollywood", label: "Bollywood", emoji: "📺" },
-  { id: "cinema", label: "Cinema", emoji: "🍿" },
-  { id: "comedy", label: "Comedy", emoji: "😂" },
-  { id: "drama", label: "Drama", emoji: "🎭" },
-  { id: "eating-out", label: "Eating out", emoji: "🍽️" },
-  { id: "running", label: "Running", emoji: "🏃" },
-  { id: "sci-fi", label: "Sci-fi", emoji: "🚀" },
-  { id: "gym", label: "Gym", emoji: "🏋️" },
-];
+const LOOKING_FOR_LABELS: Record<LookingFor, string> = {
+  FRIENDS: "Friends",
+  DATING: "Dating",
+  NETWORKING: "Networking",
+  NOT_SURE: "Not sure yet",
+};
 
-const CONNECTIONS: Connection[] = [
-  { id: "c1", name: "Sharon" },
-  { id: "c2", name: "Vishy" },
-];
-
+// Skipped for now, left exactly as static placeholder content per
+// request — not wired to real data.
 const PREMIUM_SLIDES = [
   {
     heading: "What's included",
@@ -70,35 +74,52 @@ const PREMIUM_SLIDES = [
 
 const ProfilePage: React.FC = () => {
   const history = useHistory();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("about");
+
+  // Skipped for now per request — kept as local-only toggles, not
+  // persisted to the backend.
   const [travelMode, setTravelMode] = useState(false);
   const [incognitoMode, setIncognitoMode] = useState(false);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([
-    "bollywood",
-    "comedy",
-    "gym",
-  ]);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+
   const [activeSlide, setActiveSlide] = useState(0);
+
+  // Optimistic local preview shown the instant a file is picked, while
+  // the real upload + refreshUser() round trip is in flight.
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   const handlePhotoClick = () => fileInputRef.current?.click();
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setProfileImage(url);
-  };
 
-  const toggleInterest = (id: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
+    setLocalPreview(URL.createObjectURL(file));
+    setPhotoUploading(true);
+
+    try {
+      await uploadPhoto(file);
+      // Pulls the freshly-uploaded photo URL back from the server so
+      // the avatar (and anywhere else user.profilePhoto is used)
+      // reflects what's actually persisted, not just the local blob.
+      await refreshUser();
+      toast.success("Profile photo updated");
+    } catch (error) {
+      console.error("Photo upload failed:", error);
+      toast.error("Couldn't upload that photo. Please try again.");
+    } finally {
+      setPhotoUploading(false);
+      setLocalPreview(null);
+      // Allow picking the same file again later.
+      if (event.target) event.target.value = "";
+    }
   };
 
   const scrollToSlide = (index: number) => {
@@ -121,10 +142,32 @@ const ProfilePage: React.FC = () => {
     history.push("/app/menu/my-profile");
   };
 
-  const handleSettings = () => {
-    // Point this at your real settings/menu route once it's registered.
-    history.push("/app/menu");
-  };
+  const displayName = user?.username || user?.username || "Your profile";
+  const avatarSrc = localPreview || user?.profilePhoto || undefined;
+
+  const genderLabel = user?.gender ? GENDER_LABELS[user.gender] : null;
+  const lookingForLabel = user?.lookingFor
+    ? LOOKING_FOR_LABELS[user.lookingFor]
+    : null;
+
+  // Real completion %, based on which profile fields are actually
+  // filled in — replaces the old hardcoded "80%" badge.
+  const profileCompletion = useMemo(() => {
+    if (!user) return 0;
+
+    const checks = [
+      !!user.profilePhoto,
+      (user.photos?.length ?? 0) >= 2,
+      !!user.bio,
+      !!user.gender,
+      !!user.lookingFor,
+      (user.interests?.length ?? 0) > 0,
+      user.age != null,
+    ];
+
+    const filled = checks.filter(Boolean).length;
+    return Math.round((filled / checks.length) * 100);
+  }, [user]);
 
   return (
     <IonPage>
@@ -134,10 +177,10 @@ const ProfilePage: React.FC = () => {
         {/* Profile Section */}
         <section className="profile-section">
           <IonAvatar className="profile-image-wrapper">
-            {profileImage ? (
+            {avatarSrc ? (
               <img
-                src={profileImage}
-                alt="Your profile"
+                src={avatarSrc}
+                alt={displayName}
                 className="profile-image"
               />
             ) : (
@@ -147,15 +190,22 @@ const ProfilePage: React.FC = () => {
               />
             )}
 
+            {photoUploading && (
+              <div className="profile-photo-uploading">
+                <IonSpinner name="crescent" />
+              </div>
+            )}
+
             <button
               className="profile-photo-edit"
               onClick={handlePhotoClick}
               aria-label="Change profile photo"
+              disabled={photoUploading}
             >
               <IonIcon icon={cameraOutline} />
             </button>
 
-            <div className="profile-complete">80%</div>
+            <div className="profile-complete">{profileCompletion}%</div>
           </IonAvatar>
 
           <input
@@ -167,8 +217,11 @@ const ProfilePage: React.FC = () => {
           />
 
           <IonRow className="profile-name-row">
-            <h1>{user?.username ?? "Your profile"}</h1>
-            <span className="verified">✓</span>
+            <h1>
+              {displayName}
+              {user?.age != null ? `, ${user.age}` : ""}
+            </h1>
+            {user?.emailVerified && <span className="verified">✓</span>}
           </IonRow>
 
           <button className="edit-profile" onClick={handleEditProfile}>
@@ -177,8 +230,8 @@ const ProfilePage: React.FC = () => {
           </button>
         </section>
 
-        {/* Premium — swipeable carousel, dots are real pagination now */}
-        <section
+        {/* Premium — skipped for now, left static */}
+        {/* <section
           className="premium-card"
           ref={carouselRef}
           onScroll={handleCarouselScroll}
@@ -201,9 +254,9 @@ const ProfilePage: React.FC = () => {
               <button className="benefits-btn">See All Benefits</button>
             </div>
           ))}
-        </section>
+        </section> */}
 
-        <div className="premium-dots">
+        {/* <div className="premium-dots">
           {PREMIUM_SLIDES.map((_, index) => (
             <button
               key={index}
@@ -212,10 +265,10 @@ const ProfilePage: React.FC = () => {
               aria-label={`Show premium slide ${index + 1}`}
             />
           ))}
-        </div>
+        </div> */}
 
-        {/* Modes — real toggle state */}
-        <div className="mode-container">
+        {/* Modes — skipped for now, local-only toggles */}
+        {/* <div className="mode-container">
           <button
             className={`mode-card ${travelMode ? "mode-card--active" : ""}`}
             onClick={() => setTravelMode((v) => !v)}
@@ -231,9 +284,9 @@ const ProfilePage: React.FC = () => {
             <IonIcon icon={eyeOffOutline} />
             <span>Incognito Mode</span>
           </button>
-        </div>
+        </div> */}
 
-        {/* Tabs — actually switch content now */}
+        {/* Tabs */}
         <div className="profile-tabs">
           <button
             className={`tab ${activeTab === "about" ? "active" : ""}`}
@@ -253,66 +306,57 @@ const ProfilePage: React.FC = () => {
             className={`tab ${activeTab === "connections" ? "active" : ""}`}
             onClick={() => setActiveTab("connections")}
           >
-            Connections {CONNECTIONS.length}
+            Connections
           </button>
         </div>
 
-        {/* ABOUT */}
+        {/* ABOUT — entirely real user data now */}
         {activeTab === "about" && (
           <div className="profile-content">
-            <section className="info-section">
-              <h3>Bio</h3>
-              <p className="bio">
-                Travel | Movies | Night-outs | Good food & spontaneous plans
-              </p>
-            </section>
+            {user?.bio && (
+              <section className="info-section">
+                <h3>Bio</h3>
+                <p className="bio">{user.bio}</p>
+              </section>
+            )}
 
-            <section className="info-section">
-              <h3>Essentials</h3>
-              <div className="chips">
-                <span className="chip">Indian</span>
-                <span className="chip">Software Engineer</span>
-              </div>
-            </section>
+            {(genderLabel || lookingForLabel) && (
+              <section className="info-section">
+                <h3>Essentials</h3>
+                <div className="chips">
+                  {genderLabel && <span className="chip">{genderLabel}</span>}
+                  {lookingForLabel && (
+                    <span className="chip">Looking for {lookingForLabel}</span>
+                  )}
+                </div>
+              </section>
+            )}
 
-            <section className="info-section">
-              <h3>Basics</h3>
-              <div className="chips">
-                <span className="chip">Single</span>
-                <span className="chip">Libra</span>
-                <span className="chip">ISTP</span>
-              </div>
-            </section>
+            {!!user?.interests?.length && (
+              <section className="info-section">
+                <h3>Interests</h3>
+                <div className="chips">
+                  {user.interests.map((interest) => (
+                    <span className="chip" key={interest}>
+                      {interest}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <section className="info-section">
-              <h3>Interests</h3>
-              <p className="section-hint">Tap to select what represents you</p>
-              <div className="chips">
-                {INTEREST_OPTIONS.map((interest) => (
-                  <button
-                    key={interest.id}
-                    className={`chip chip--selectable ${
-                      selectedInterests.includes(interest.id)
-                        ? "chip--selected"
-                        : ""
-                    }`}
-                    onClick={() => toggleInterest(interest.id)}
-                  >
-                    {interest.emoji} {interest.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="info-section personality-card">
-              <h3>About You</h3>
-              <span className="personality-type">Your type is an Explorer</span>
-              <p>
-                Explorers are curious and hands-on — they'd rather try something
-                new than read about it. They stay calm when plans change and
-                tend to turn a chaotic day into a good story.
-              </p>
-            </section>
+            {!user?.bio &&
+              !genderLabel &&
+              !lookingForLabel &&
+              !user?.interests?.length && (
+                <div className="empty-state">
+                  <h3>Your profile is looking a little empty</h3>
+                  <p>
+                    Add a bio, interests and preferences to help people know
+                    you.
+                  </p>
+                </div>
+              )}
           </div>
         )}
 
@@ -327,24 +371,19 @@ const ProfilePage: React.FC = () => {
           </div>
         )}
 
-        {/* CONNECTIONS */}
+        {/* CONNECTIONS — no connections/friends API wired up yet, so
+            this is an honest empty state rather than fake rows. Point
+            this at a real GET /friends (or similar) endpoint once one
+            exists, the same way About now reads from `user`. */}
         {activeTab === "connections" && (
           <div className="profile-content">
-            <div className="connections-list">
-              {CONNECTIONS.map((connection) => (
-                <div className="connection-row" key={connection.id}>
-                  <div className="connection-avatar">
-                    <IonIcon icon={personCircleOutline} />
-                  </div>
-                  <span className="connection-name">{connection.name}</span>
-                  <button
-                    className="connection-message-btn"
-                    aria-label={`Message ${connection.name}`}
-                  >
-                    <IonIcon icon={chatbubbleEllipsesOutline} />
-                  </button>
-                </div>
-              ))}
+            <div className="empty-state">
+              <IonIcon
+                icon={chatbubbleEllipsesOutline}
+                className="empty-state-icon"
+              />
+              <h3>No connections yet</h3>
+              <p>People you connect with will show up here.</p>
             </div>
           </div>
         )}
