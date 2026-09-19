@@ -1,5 +1,6 @@
 import {
   IonAvatar,
+  IonBadge,
   IonButton,
   IonButtons,
   IonContent,
@@ -13,6 +14,7 @@ import {
   IonSegmentButton,
   IonSpinner,
   IonText,
+  useIonViewWillEnter,
 } from "@ionic/react";
 
 import {
@@ -23,7 +25,7 @@ import {
   ellipsisVerticalOutline,
 } from "ionicons/icons";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useHistory } from "react-router";
 import toast from "react-hot-toast";
 
@@ -36,10 +38,15 @@ import {
   rejectConnectionRequest,
 } from "../../service/connectionService";
 
+import {
+  getMyConversations,
+  getOrCreateDirectConversation,
+} from "../../service/chatService";
+
 import { ConnectionResponse } from "../../common/connection.model";
+import { ConversationResponse } from "../../common/chat.model";
 
 import "./FriendsPage.scss";
-import { getOrCreateDirectConversation } from "../../service/chatService";
 
 type FriendsTab = "friends" | "requests";
 
@@ -51,13 +58,31 @@ const FriendsPage: React.FC = () => {
   const [friends, setFriends] = useState<ConnectionResponse[]>([]);
   const [requests, setRequests] = useState<ConnectionResponse[]>([]);
 
+  /**
+   * Conversations are required for unread counts.
+   *
+   * Each conversation contains:
+   *
+   * friendPublicId
+   * unreadCount
+   * lastMessage
+   * etc.
+   */
+  const [conversations, setConversations] = useState<ConversationResponse[]>(
+    [],
+  );
+
   const [searchText, setSearchText] = useState("");
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+
   const [chatLoadingId, setChatLoadingId] = useState<number | null>(null);
 
+  /**
+   * Load accepted friends.
+   */
   const loadFriends = async () => {
     try {
       const response = await getFriends();
@@ -68,6 +93,9 @@ const FriendsPage: React.FC = () => {
     }
   };
 
+  /**
+   * Load received friend requests.
+   */
   const loadRequests = async () => {
     try {
       const response = await getReceivedRequests();
@@ -78,20 +106,67 @@ const FriendsPage: React.FC = () => {
     }
   };
 
+  /**
+   * Load conversations.
+   *
+   * This is where unreadCount comes from.
+   */
+  const loadConversations = async () => {
+    try {
+      const data = await getMyConversations();
+
+      setConversations(data ?? []);
+    } catch (error) {
+      console.error("Failed to load conversations:", error);
+    }
+  };
+
+  /**
+   * Load complete page data.
+   */
   const loadData = async () => {
     try {
       setLoading(true);
 
-      await Promise.all([loadFriends(), loadRequests()]);
+      await Promise.all([loadFriends(), loadRequests(), loadConversations()]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  /**
+   * Important for unread counts.
+   *
+   * Ionic pages often stay mounted when navigating.
+   *
+   * Therefore normal useEffect([]) is not enough.
+   *
+   * This runs:
+   *
+   * - first time page opens
+   * - when returning from FriendChatPage
+   *
+   * Example:
+   *
+   * Rahul unread = 3
+   *      ↓
+   * open Rahul chat
+   *      ↓
+   * messages marked read
+   *      ↓
+   * press back
+   *      ↓
+   * this executes again
+   *      ↓
+   * unread = 0
+   */
+  useIonViewWillEnter(() => {
+    void loadData();
+  });
 
+  /**
+   * Accept friend request.
+   */
   const handleAccept = async (connectionId: number) => {
     try {
       setActionLoading(connectionId);
@@ -111,11 +186,16 @@ const FriendsPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to accept request:", error);
+
+      toast.error("Could not accept friend request.");
     } finally {
       setActionLoading(null);
     }
   };
 
+  /**
+   * Reject friend request.
+   */
   const handleReject = async (connectionId: number) => {
     try {
       setActionLoading(connectionId);
@@ -127,11 +207,16 @@ const FriendsPage: React.FC = () => {
       );
     } catch (error) {
       console.error("Failed to reject request:", error);
+
+      toast.error("Could not reject friend request.");
     } finally {
       setActionLoading(null);
     }
   };
 
+  /**
+   * Friend search.
+   */
   const filteredFriends = useMemo(() => {
     const value = searchText.trim().toLowerCase();
 
@@ -139,13 +224,14 @@ const FriendsPage: React.FC = () => {
       return friends;
     }
 
-    return friends.filter(
-      (friend) =>
-        friend.username?.toLowerCase().includes(value) ||
-        friend.username?.toLowerCase().includes(value),
+    return friends.filter((friend) =>
+      friend.username?.toLowerCase().includes(value),
     );
   }, [friends, searchText]);
 
+  /**
+   * Friend request search.
+   */
   const filteredRequests = useMemo(() => {
     const value = searchText.trim().toLowerCase();
 
@@ -158,15 +244,63 @@ const FriendsPage: React.FC = () => {
     );
   }, [requests, searchText]);
 
+  /**
+   * Find conversation belonging to this friend.
+   *
+   * ConnectionResponse:
+   *
+   * friend.userId
+   *
+   * ConversationResponse:
+   *
+   * conversation.friendPublicId
+   */
+  const getFriendConversation = (
+    friendPublicId: string,
+  ): ConversationResponse | undefined => {
+    return conversations.find(
+      (conversation) => conversation.friendPublicId === friendPublicId,
+    );
+  };
+
+  /**
+   * Open friend profile.
+   */
   const openProfile = (publicId: string) => {
     history.push(`/app/person/${publicId}`);
   };
 
+  /**
+   * Open/create direct conversation.
+   */
   const openChat = async (friend: ConnectionResponse) => {
     try {
       setChatLoadingId(friend.connectionId);
 
       const conversation = await getOrCreateDirectConversation(friend.userId);
+
+      /**
+       * Keep local conversation data updated.
+       *
+       * If conversation already exists → replace it.
+       *
+       * Otherwise → add it.
+       */
+      setConversations((previous) => {
+        const exists = previous.some(
+          (item) => item.conversationId === conversation.conversationId,
+        );
+
+        if (exists) {
+          return previous.map((item) =>
+            item.conversationId === conversation.conversationId
+              ? conversation
+              : item,
+          );
+        }
+
+        return [...previous, conversation];
+      });
 
       history.push(`/app/friend-chat/${conversation.conversationId}`, {
         conversation,
@@ -174,6 +308,7 @@ const FriendsPage: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to open friend chat:", error);
+
       toast.error("Could not open this chat.");
     } finally {
       setChatLoadingId(null);
@@ -212,10 +347,13 @@ const FriendsPage: React.FC = () => {
         {loading ? (
           <div className="friends-loading">
             <IonSpinner name="crescent" />
+
             <p>Loading...</p>
           </div>
         ) : (
           <>
+            {/* ================= FRIENDS ================= */}
+
             {activeTab === "friends" && (
               <IonList>
                 {filteredFriends.length === 0 ? (
@@ -227,72 +365,107 @@ const FriendsPage: React.FC = () => {
                     <p>Connect with people nearby to build your friend list.</p>
                   </div>
                 ) : (
-                  filteredFriends.map((friend) => (
-                    <IonItem
-                      key={friend.connectionId}
-                      lines="none"
-                      className="friend-item"
-                      button
-                      onClick={() => openProfile(friend.userId)}
-                    >
-                      <IonAvatar slot="start">
-                        {friend.profilePhoto ? (
-                          <img
-                            src={friend.profilePhoto}
-                            alt={friend.username}
-                          />
-                        ) : (
-                          <IonIcon size="large" icon={personCircleSharp} />
-                        )}
-                      </IonAvatar>
+                  filteredFriends.map((friend) => {
+                    /**
+                     * Find matching conversation.
+                     */
+                    const conversation = getFriendConversation(friend.userId);
 
-                      <IonLabel>
-                        <h2>{friend.username}</h2>
+                    /**
+                     * Get unread count.
+                     */
+                    const unreadCount = conversation?.unreadCount ?? 0;
 
-                        <IonText color={friend.online ? "success" : "medium"}>
-                          <p>
-                            <span
-                              className={`status-dot ${
-                                friend.online ? "online" : "offline"
-                              }`}
+                    return (
+                      <IonItem
+                        key={friend.connectionId}
+                        lines="none"
+                        className="friend-item"
+                        button
+                        onClick={() => openProfile(friend.userId)}
+                      >
+                        {/* Profile photo */}
+
+                        <IonAvatar slot="start">
+                          {friend.profilePhoto ? (
+                            <img
+                              src={friend.profilePhoto}
+                              alt={friend.username}
                             />
-
-                            {friend.online ? "Online" : "Offline"}
-                          </p>
-                        </IonText>
-                      </IonLabel>
-
-                      <IonButtons slot="end">
-                        <IonButton
-                          fill="clear"
-                          disabled={chatLoadingId === friend.connectionId}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void openChat(friend);
-                          }}
-                        >
-                          {chatLoadingId === friend.connectionId ? (
-                            <IonSpinner name="crescent" />
                           ) : (
-                            <IonIcon slot="icon-only" icon={chatboxOutline} />
+                            <IonIcon size="large" icon={personCircleSharp} />
                           )}
-                        </IonButton>
+                        </IonAvatar>
 
-                        <IonButton
-                          fill="clear"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <IonIcon
-                            slot="icon-only"
-                            icon={ellipsisVerticalOutline}
-                          />
-                        </IonButton>
-                      </IonButtons>
-                    </IonItem>
-                  ))
+                        {/* Friend information */}
+
+                        <IonLabel>
+                          <h2>{friend.username}</h2>
+
+                          <IonText color={friend.online ? "success" : "medium"}>
+                            <p>
+                              <span
+                                className={`status-dot ${
+                                  friend.online ? "online" : "offline"
+                                }`}
+                              />
+
+                              {friend.online ? "Online" : "Offline"}
+                            </p>
+                          </IonText>
+                        </IonLabel>
+
+                        {/* ================= UNREAD BADGE ================= */}
+
+                        {unreadCount > 0 && (
+                          <IonBadge
+                            slot="end"
+                            color="danger"
+                            style={{
+                              marginRight: "8px",
+                            }}
+                          >
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </IonBadge>
+                        )}
+
+                        {/* ================= ACTIONS ================= */}
+
+                        <IonButtons slot="end">
+                          <IonButton
+                            fill="clear"
+                            disabled={chatLoadingId === friend.connectionId}
+                            onClick={(event) => {
+                              event.stopPropagation();
+
+                              void openChat(friend);
+                            }}
+                          >
+                            {chatLoadingId === friend.connectionId ? (
+                              <IonSpinner name="crescent" />
+                            ) : (
+                              <IonIcon slot="icon-only" icon={chatboxOutline} />
+                            )}
+                          </IonButton>
+
+                          <IonButton
+                            fill="clear"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <IonIcon
+                              slot="icon-only"
+                              icon={ellipsisVerticalOutline}
+                            />
+                          </IonButton>
+                        </IonButtons>
+                      </IonItem>
+                    );
+                  })
                 )}
               </IonList>
             )}
+
+            {/* ================= REQUESTS ================= */}
 
             {activeTab === "requests" && (
               <IonList>
