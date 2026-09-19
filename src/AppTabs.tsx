@@ -25,7 +25,9 @@ import ProfilePage from "./pages/profile/Me";
 import PeoplePage from "./pages/people/PeoplePage";
 import FriendsPage from "./pages/friends/FriendsPage";
 import PersonDetailPage from "./pages/people/PersonDetailsPage";
+
 import { useRealtimeConnection } from "./hooks/useRealtimeConnection";
+import FriendChatPage from "./pages/friends/FriendChatPage";
 
 // NOTE: this component renders *inside* the single top-level
 // <IonReactRouter> from App.tsx. It previously mounted its own nested
@@ -102,6 +104,11 @@ const AppTabs: React.FC = () => {
       {/* Chat page */}
       <Route exact path="/app/chatPage">
         <ChatPage />
+      </Route>
+
+      {/* Friend-to-friend direct chat */}
+      <Route exact path="/app/friend-chat/:conversationId">
+        <FriendChatPage />
       </Route>
 
       {/*ONE TWO ONE Chat page */}

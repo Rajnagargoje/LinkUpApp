@@ -64,12 +64,6 @@ const PeoplePage: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState("");
 
-  /*
-   * ----------------------------------------------------
-   * GET CURRENT LOCATION
-   * ----------------------------------------------------
-   */
-
   const getCurrentLocation = (): Promise<GeolocationPosition> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {

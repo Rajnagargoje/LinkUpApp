@@ -60,6 +60,29 @@ export const ENDPOINTS = {
   connectionStatus: (publicId: string) => `/connections/status/${publicId}`,
 
   unfriend: (publicId: string) => `/connections/${publicId}`,
+
+  // -----------------------------
+  // FRIEND CHAT
+  // -----------------------------
+
+  conversations: "/conversations",
+
+  directConversation: (friendPublicId: string) =>
+    `/conversations/direct/${friendPublicId}`,
+
+  conversationMessages: (conversationId: number) =>
+    `/conversations/${conversationId}/messages`,
+
+  markConversationRead: (conversationId: number) =>
+    `/conversations/${conversationId}/read`,
+
+  message: (messageId: number) => `/conversations/messages/${messageId}`,
+
+  markMessageDelivered: (messageId: number) =>
+    `/conversations/messages/${messageId}/delivered`,
+
+  markMessageRead: (messageId: number) =>
+    `/conversations/messages/${messageId}/read`,
 };
 
 // STOMP destinations used by socketService. Adjust to match your
@@ -68,6 +91,8 @@ export const STOMP = {
   presenceTopic: "/topic/presence",
   personalQueue: (username: string) => `/user/${username}/queue/messages`,
   sendDirectMessage: "/app/chat.send",
+  friendConversationQueue: (conversationId: number) =>
+    `/user/queue/conversations/${conversationId}`,
   roomTopic: (roomId: string) => `/topic/room/${roomId}`,
   sendRoomMessage: (roomId: string) => `/app/sendMessage/${roomId}`,
 };

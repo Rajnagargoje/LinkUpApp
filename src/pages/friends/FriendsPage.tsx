@@ -25,6 +25,7 @@ import {
 
 import { useEffect, useMemo, useState } from "react";
 import { useHistory } from "react-router";
+import toast from "react-hot-toast";
 
 import Header from "../../header/Header";
 
@@ -38,6 +39,7 @@ import {
 import { ConnectionResponse } from "../../common/connection.model";
 
 import "./FriendsPage.scss";
+import { getOrCreateDirectConversation } from "../../service/chatService";
 
 type FriendsTab = "friends" | "requests";
 
@@ -54,6 +56,7 @@ const FriendsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [chatLoadingId, setChatLoadingId] = useState<number | null>(null);
 
   const loadFriends = async () => {
     try {
@@ -159,11 +162,22 @@ const FriendsPage: React.FC = () => {
     history.push(`/app/person/${publicId}`);
   };
 
-  const openChat = (friend: ConnectionResponse) => {
-    history.push("/app/chatPage", {
-      username: friend.username,
-      roomId: `dm-${friend.userId}`,
-    });
+  const openChat = async (friend: ConnectionResponse) => {
+    try {
+      setChatLoadingId(friend.connectionId);
+
+      const conversation = await getOrCreateDirectConversation(friend.userId);
+
+      history.push(`/app/friend-chat/${conversation.conversationId}`, {
+        conversation,
+        friend,
+      });
+    } catch (error) {
+      console.error("Failed to open friend chat:", error);
+      toast.error("Could not open this chat.");
+    } finally {
+      setChatLoadingId(null);
+    }
   };
 
   return (
@@ -251,12 +265,17 @@ const FriendsPage: React.FC = () => {
                       <IonButtons slot="end">
                         <IonButton
                           fill="clear"
+                          disabled={chatLoadingId === friend.connectionId}
                           onClick={(event) => {
                             event.stopPropagation();
-                            openChat(friend);
+                            void openChat(friend);
                           }}
                         >
-                          <IonIcon slot="icon-only" icon={chatboxOutline} />
+                          {chatLoadingId === friend.connectionId ? (
+                            <IonSpinner name="crescent" />
+                          ) : (
+                            <IonIcon slot="icon-only" icon={chatboxOutline} />
+                          )}
                         </IonButton>
 
                         <IonButton
