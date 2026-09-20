@@ -9,7 +9,7 @@ export interface Persons {
   name: string;
   age: number;
   profilePhoto?: string;
-  distanceKm: number;
+  distanceKm: number | null;
   online: boolean;
   verified?: boolean;
   meta?: string;

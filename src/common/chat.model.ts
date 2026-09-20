@@ -13,6 +13,8 @@ export interface ConversationResponse {
   muted: boolean;
   archived: boolean;
   pinned: boolean;
+  friends?: boolean;
+  introductionsRemaining?: number;
 }
 
 export interface ChatMessageResponse {

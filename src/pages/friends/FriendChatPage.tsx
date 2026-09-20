@@ -48,6 +48,7 @@ import { STOMP } from "../../config/api.config";
 import { useAuth } from "../../contexts/AuthContext";
 
 import {
+  sendDirectMessage,
   getConversationMessages,
   getMyConversations,
   markConversationRead,
@@ -55,6 +56,7 @@ import {
 } from "../../service/chatService";
 
 import socketService from "../../service/socketService";
+import { sendConnectionRequest } from "../../service/connectionService";
 
 import "./FriendChatPage.scss";
 
@@ -175,7 +177,7 @@ const FriendChatPage: React.FC = () => {
    * without navigation state.
    */
   const loadConversation = useCallback(async () => {
-    if (conversation || !Number.isFinite(numericConversationId)) {
+    if (!Number.isFinite(numericConversationId)) {
       return;
     }
 
@@ -192,7 +194,7 @@ const FriendChatPage: React.FC = () => {
     } catch (error) {
       console.error("Failed to load conversation:", error);
     }
-  }, [conversation, numericConversationId]);
+  }, [numericConversationId]);
 
   /**
    * Load chat history.
@@ -405,7 +407,7 @@ const FriendChatPage: React.FC = () => {
   /**
    * Send friend message through STOMP.
    */
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const content = input.trim();
 
     if (!content || sending) {
@@ -426,33 +428,15 @@ const FriendChatPage: React.FC = () => {
 
     setSending(true);
 
-    const published = socketService.publish(STOMP.sendDirectMessage, {
-      conversationId: numericConversationId,
-
-      content,
-
-      replyToMessageId: null,
-    });
-
-    if (!published) {
-      setSending(false);
-
-      toast.error("Message could not be sent.");
-
-      return;
-    }
-
-    /**
-     * Do not manually insert the sent message here.
-     *
-     * Backend saves the message and sends the persisted
-     * ChatMessageResponse back to both participants.
-     *
-     * This prevents duplicate messages.
-     */
-    setInput("");
-
-    setSending(false);
+    try {
+      const message = await sendDirectMessage(numericConversationId, content);
+      addOrReplaceMessage(message);
+      setInput("");
+      const conversations = await getMyConversations();
+      setConversation(conversations.find(item => item.conversationId === numericConversationId) ?? null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Message could not be sent.");
+    } finally { setSending(false); }
   };
 
   /**
@@ -540,6 +524,10 @@ const FriendChatPage: React.FC = () => {
       {/* ================= MESSAGES ================= */}
 
       <IonContent ref={contentRef} className="friend-chat-content" fullscreen>
+        {conversation?.friends === false && <div className="ion-padding" role="status">
+          <p>{conversation.introductionsRemaining ?? 0} introduction messages remaining. Become friends to continue chatting.</p>
+          <IonButton onClick={() => { void sendConnectionRequest(conversation.friendPublicId).then(() => toast.success("Friend request sent")).catch((error) => toast.error(error.response?.data?.message || "Could not send request")); }}>Send friend request</IonButton>
+        </div>}
         {loading ? (
           <div className="friend-chat-loading">
             <IonSpinner name="crescent" />

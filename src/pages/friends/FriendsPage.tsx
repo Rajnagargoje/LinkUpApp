@@ -469,6 +469,10 @@ const FriendsPage: React.FC = () => {
 
             {activeTab === "requests" && (
               <IonList>
+                {conversations.filter(chat => chat.friends === false).map(chat => <IonItem key={`intro-${chat.conversationId}`} button onClick={() => history.push(`/app/friend-chat/${chat.conversationId}`, { conversation: chat })}>
+                  <IonLabel><h2>{chat.friendUsername}</h2><p>{chat.lastMessage || "Introduction conversation"}</p></IonLabel>
+                  {chat.unreadCount > 0 && <IonBadge>{chat.unreadCount}</IonBadge>}
+                </IonItem>)}
                 {filteredRequests.length === 0 ? (
                   <div className="friends-empty">
                     <IonIcon icon={personCircleSharp} />

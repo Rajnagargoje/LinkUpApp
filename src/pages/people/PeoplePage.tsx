@@ -28,10 +28,12 @@ import "./PeoplePage.scss";
 import { getNearbyPeople, updateLocation } from "../../service/userService";
 import { useAuth } from "../../contexts/AuthContext";
 import { Persons } from "../../common/person.model";
+import axiosClient from "../../service/axiosClient";
 
-type FilterType = "nearby" | "online" | "new" | "popular";
+type FilterType = "all" | "nearby" | "online" | "new";
 
 const FILTERS = [
+  { id: "all" as FilterType, label: "Everyone" },
   {
     id: "nearby" as FilterType,
     label: "Nearby",
@@ -44,17 +46,13 @@ const FILTERS = [
     id: "new" as FilterType,
     label: "New here",
   },
-  {
-    id: "popular" as FilterType,
-    label: "Popular",
-  },
 ];
 
 const PeoplePage: React.FC = () => {
   const { user } = useAuth();
   const [people, setPeople] = useState<Persons[]>([]);
   const router = useIonRouter();
-  const [activeFilter, setActiveFilter] = useState<FilterType>("nearby");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   const [loading, setLoading] = useState(true);
 
@@ -174,9 +172,13 @@ const PeoplePage: React.FC = () => {
    * ----------------------------------------------------
    */
 
-  useEffect(() => {
-    fetchNearbyPeople();
-  }, []);
+  const fetchPeople = async () => {
+    setLoading(true);
+    try { const response = await axiosClient.get<Persons[]>("/people/discover"); setPeople(response.data); }
+    catch { setToastMessage("Unable to load people. Please try again."); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void fetchPeople(); }, []);
 
   /*
    * ----------------------------------------------------
@@ -192,7 +194,7 @@ const PeoplePage: React.FC = () => {
       case "new":
         return people.filter((Persons) => Persons.meta === "New here");
 
-      case "popular":
+      case "all":
         /*
          * For now return all.
          *
@@ -204,7 +206,7 @@ const PeoplePage: React.FC = () => {
 
       case "nearby":
       default:
-        return [...people].sort((a, b) => a.distanceKm - b.distanceKm);
+        return [...people].sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     }
   };
 
@@ -217,7 +219,7 @@ const PeoplePage: React.FC = () => {
    */
 
   const handleRefresh = async (event: CustomEvent) => {
-    await fetchNearbyPeople();
+    if (activeFilter === "nearby") await fetchNearbyPeople(); else await fetchPeople();
 
     event.detail.complete();
   };
@@ -229,7 +231,7 @@ const PeoplePage: React.FC = () => {
    */
 
   const handleChat = (Persons: Persons) => {
-    console.log("Start chat with:", Persons);
+    router.push(`/app/person/${Persons.publicId}`);
 
     /*
      * Later:
@@ -299,7 +301,7 @@ const PeoplePage: React.FC = () => {
               className={`filter-chip ${
                 activeFilter === filter.id ? "filter-chip--active" : ""
               }`}
-              onClick={() => setActiveFilter(filter.id)}
+              onClick={() => { setActiveFilter(filter.id); if (filter.id === "nearby") void fetchNearbyPeople(); else if (activeFilter === "nearby") void fetchPeople(); }}
             >
               {filter.label}
 
@@ -430,7 +432,7 @@ const PeoplePage: React.FC = () => {
                       </span>
 
                       <span className="people-card-distance">
-                        📍 {Persons.distanceKm.toFixed(1)} km away
+                        {Persons.distanceKm != null ? `📍 ${Persons.distanceKm.toFixed(1)} km away` : "Discover & connect"}
                       </span>
                     </div>
                   </div>

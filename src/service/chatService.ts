@@ -5,6 +5,11 @@ import { ApiEnvelope } from "./userService";
 
 type MaybeEnvelope<T> = T | ApiEnvelope<T>;
 
+export async function sendDirectMessage(conversationId: number, content: string) {
+  const response = await axiosClient.post<ChatMessageResponse>(ENDPOINTS.conversationMessages(conversationId), { content });
+  return response.data;
+}
+
 function unwrap<T>(payload: MaybeEnvelope<T>): T {
   if (
     payload &&

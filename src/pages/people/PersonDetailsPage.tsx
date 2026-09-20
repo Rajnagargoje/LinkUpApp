@@ -21,6 +21,8 @@ import { Person } from "../../common/person.model";
 import { getPersonProfile } from "../../service/peopleService";
 import { formatRelativeTime, toTitleCase } from "../../config/date.time.format";
 import { sendConnectionRequest } from "../../service/connectionService";
+import { getOrCreateDirectConversation } from "../../service/chatService";
+import toast from "react-hot-toast";
 
 type Tab = "about" | "posts";
 
@@ -133,11 +135,11 @@ const PersonDetailPage: React.FC = () => {
     });
   };
 
-  const handleMessage = () => {
-    history.push("/app/chatPage", {
-      username: person.username,
-      roomId: `dm-${person.id}`,
-    });
+  const handleMessage = async () => {
+    try {
+      const conversation = await getOrCreateDirectConversation(person.id);
+      history.push(`/app/friend-chat/${conversation.conversationId}`, { conversation });
+    } catch { toast.error("Unable to open this conversation."); }
   };
 
   const handleShare = async () => {
