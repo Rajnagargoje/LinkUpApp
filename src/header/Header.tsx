@@ -1,5 +1,6 @@
 import {
   IonButton,
+  IonBadge,
   IonButtons,
   IonHeader,
   IonIcon,
@@ -9,7 +10,7 @@ import {
 } from "@ionic/react";
 
 import {
-  atOutline,
+  notificationsOutline,
   cameraOutline,
   chatbubbles,
   ellipsisHorizontal,
@@ -19,7 +20,12 @@ import {
 
 import "./Header.scss";
 
+import { useNotifications } from "../contexts/NotificationContext";
+import { badgeCount } from "../service/notificationService";
+import "../pages/notifications/NotificationsPage.scss";
+
 const Header: React.FC = () => {
+  const { counts } = useNotifications();
   const router = useIonRouter();
   return (
     <IonHeader className="main-header">
@@ -40,8 +46,9 @@ const Header: React.FC = () => {
 
         {/* Right Actions */}
         <IonButtons slot="end">
-          <IonButton fill="clear" className="header-action" aria-label="Camera">
-            <IonIcon slot="icon-only" icon={cameraOutline} />
+          <IonButton fill="clear" className="header-action notification-bell" aria-label={`Notifications, ${counts.total} unread`} onClick={() => router.push("/app/notifications")}>
+            <IonIcon slot="icon-only" icon={notificationsOutline} />
+            {counts.total > 0 && <IonBadge color="danger">{badgeCount(counts.total)}</IonBadge>}
           </IonButton>
 
           <IonButton

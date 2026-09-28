@@ -122,3 +122,5 @@ www/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
+# Firebase config belongs to the deployment environment.
+android/app/google-services.json

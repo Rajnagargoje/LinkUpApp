@@ -176,37 +176,57 @@ const ProfilePage: React.FC = () => {
       <IonContent className="profile-page">
         {/* Profile Section */}
         <section className="profile-section">
-          <IonAvatar className="profile-image-wrapper">
-            {avatarSrc ? (
-              <img
-                src={avatarSrc}
-                alt={displayName}
-                className="profile-image"
+          <div className="profile-avatar-ring">
+            <svg viewBox="0 0 160 160" className="profile-ring-svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="profileRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#667eea" />
+                  <stop offset="100%" stopColor="#764ba2" />
+                </linearGradient>
+              </defs>
+              <circle cx="80" cy="80" r="74" className="profile-ring-track" />
+              <circle
+                cx="80"
+                cy="80"
+                r="74"
+                className="profile-ring-progress"
+                strokeDasharray={2 * Math.PI * 74}
+                strokeDashoffset={2 * Math.PI * 74 * (1 - profileCompletion / 100)}
               />
-            ) : (
-              <IonIcon
-                icon={personCircleOutline}
-                className="profile-image-placeholder"
-              />
-            )}
+            </svg>
 
-            {photoUploading && (
-              <div className="profile-photo-uploading">
-                <IonSpinner name="crescent" />
-              </div>
-            )}
+            <IonAvatar className="profile-image-wrapper">
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={displayName}
+                  className="profile-image"
+                />
+              ) : (
+                <IonIcon
+                  icon={personCircleOutline}
+                  className="profile-image-placeholder"
+                />
+              )}
 
-            <button
-              className="profile-photo-edit"
-              onClick={handlePhotoClick}
-              aria-label="Change profile photo"
-              disabled={photoUploading}
-            >
-              <IonIcon icon={cameraOutline} />
-            </button>
+              {photoUploading && (
+                <div className="profile-photo-uploading">
+                  <IonSpinner name="crescent" />
+                </div>
+              )}
 
-            <div className="profile-complete">{profileCompletion}%</div>
-          </IonAvatar>
+              <button
+                className="profile-photo-edit"
+                onClick={handlePhotoClick}
+                aria-label="Change profile photo"
+                disabled={photoUploading}
+              >
+                <IonIcon icon={cameraOutline} />
+              </button>
+
+              <div className="profile-complete">{profileCompletion}%</div>
+            </IonAvatar>
+          </div>
 
           <input
             ref={fileInputRef}

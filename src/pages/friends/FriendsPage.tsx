@@ -25,8 +25,8 @@ import {
   ellipsisVerticalOutline,
 } from "ionicons/icons";
 
-import { useMemo, useState } from "react";
-import { useHistory } from "react-router";
+import { useEffect, useRef, useMemo, useState } from "react";
+import { useHistory, useLocation } from "react-router";
 import toast from "react-hot-toast";
 
 import Header from "../../header/Header";
@@ -50,8 +50,17 @@ import "./FriendsPage.scss";
 
 type FriendsTab = "friends" | "requests";
 
+import { useNotifications, isNotificationAppActive } from "../../contexts/NotificationContext";
+import { badgeCount, readRequestNotifications } from "../../service/notificationService";
+
 const FriendsPage: React.FC = () => {
+  const location = useLocation();
+  const { counts, revision, refresh: refreshNotifications } = useNotifications();
+  const seenRequests = useRef(new Set<number>());
   const history = useHistory();
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("tab") === "requests") setActiveTab("requests");
+  }, [location.search]);
 
   const [activeTab, setActiveTab] = useState<FriendsTab>("friends");
 
@@ -167,6 +176,19 @@ const FriendsPage: React.FC = () => {
   /**
    * Accept friend request.
    */
+  useEffect(() => {
+    if (location.pathname === "/app/friends") {
+      void loadRequests(); void loadFriends(); void loadConversations();
+    }
+  }, [revision, location.pathname]);
+
+  useEffect(() => {
+    if (activeTab !== "requests" || location.pathname !== "/app/friends" || !isNotificationAppActive()) return;
+    const ids = requests.map(request => request.connectionId).filter(id => !seenRequests.current.has(id)).slice(0, 100);
+    if (!ids.length) return;
+    ids.forEach(id => seenRequests.current.add(id));
+    void readRequestNotifications(ids).then(() => refreshNotifications()).catch(() => ids.forEach(id => seenRequests.current.delete(id)));
+  }, [requests, activeTab, location.pathname, refreshNotifications]);
   const handleAccept = async (connectionId: number) => {
     try {
       setActionLoading(connectionId);
@@ -190,6 +212,7 @@ const FriendsPage: React.FC = () => {
       toast.error("Could not accept friend request.");
     } finally {
       setActionLoading(null);
+      void refreshNotifications();
     }
   };
 
@@ -211,6 +234,7 @@ const FriendsPage: React.FC = () => {
       toast.error("Could not reject friend request.");
     } finally {
       setActionLoading(null);
+      void refreshNotifications();
     }
   };
 
@@ -333,13 +357,13 @@ const FriendsPage: React.FC = () => {
           }
         >
           <IonSegmentButton value="friends">
-            <IonLabel>YOUR FRIENDS</IonLabel>
+            <IonLabel>YOUR FRIENDS {counts.messages > 0 && <IonBadge color="danger">{badgeCount(counts.messages)}</IonBadge>}</IonLabel>
           </IonSegmentButton>
 
           <IonSegmentButton value="requests">
             <IonLabel>
               FRIEND REQUESTS
-              {requests.length > 0 && ` (${requests.length})`}
+              {counts.requests > 0 && <IonBadge color="danger">{badgeCount(counts.requests)}</IonBadge>}
             </IonLabel>
           </IonSegmentButton>
         </IonSegment>

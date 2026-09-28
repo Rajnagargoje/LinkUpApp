@@ -55,6 +55,7 @@ import {
   markMessageRead,
 } from "../../service/chatService";
 
+import { isNotificationAppActive } from "../../contexts/NotificationContext";
 import socketService from "../../service/socketService";
 import { sendConnectionRequest } from "../../service/connectionService";
 
@@ -227,6 +228,7 @@ const FriendChatPage: React.FC = () => {
 
       const latestMessage = sortedMessages[sortedMessages.length - 1];
 
+      if (!isNotificationAppActive() || !isPageActiveRef.current) return;
       await markConversationRead(numericConversationId, latestMessage.id).catch(
         console.error,
       );
@@ -290,6 +292,18 @@ const FriendChatPage: React.FC = () => {
     isPageActiveRef.current = false;
   });
 
+  useEffect(() => {
+    const resume = () => {
+      if (isPageActiveRef.current && isNotificationAppActive()) void loadMessages();
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("linkup:app-resume", resume);
+    return () => {
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("linkup:app-resume", resume);
+    };
+  }, [loadMessages]);
+
   /**
    * Friend chat WebSocket subscription.
    */
@@ -335,7 +349,7 @@ const FriendChatPage: React.FC = () => {
            * Otherwise unread count would remain zero while
            * the user is actually on another screen.
            */
-          if (!isPageActiveRef.current) {
+          if (!isPageActiveRef.current || !isNotificationAppActive()) {
             return;
           }
 

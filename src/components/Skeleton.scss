@@ -1,0 +1,40 @@
+.skeleton-block {
+  display: inline-block;
+
+  background: linear-gradient(
+    90deg,
+    var(--linkup-card-border) 25%,
+    rgba(var(--ion-color-primary-rgb), 0.18) 37%,
+    var(--linkup-card-border) 63%
+  );
+  background-size: 400% 100%;
+
+  animation: skeletonShimmer 1.4s ease infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.notification-row--skeleton {
+  pointer-events: none;
+}
+
+.notification-row--skeleton .notification-copy {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}

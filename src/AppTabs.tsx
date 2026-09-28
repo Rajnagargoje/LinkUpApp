@@ -1,6 +1,7 @@
 import { Redirect, Route, Switch } from "react-router-dom";
 import {
   IonIcon,
+  IonBadge,
   IonLabel,
   IonRouterOutlet,
   IonTabBar,
@@ -34,7 +35,13 @@ import FriendChatPage from "./pages/friends/FriendChatPage";
 // <IonApp>/<IonReactRouter>, which meant the app briefly had two
 // routers fighting over history — removed as part of the routing
 // cleanup.
+import { useNotifications } from "./contexts/NotificationContext";
+import { badgeCount } from "./service/notificationService";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
+import NotificationSettingsPage from "./pages/notifications/NotificationSettingsPage";
+
 const AppTabs: React.FC = () => {
+  const { counts } = useNotifications();
   // Opens the shared, authenticated real-time socket for as long as the
   // authenticated app shell is mounted, and cleanly tears it down on
   // logout / unmount.
@@ -79,6 +86,7 @@ const AppTabs: React.FC = () => {
           >
             <IonIcon icon={mailOutline} />
             <IonLabel>Messages</IonLabel>
+            {counts.messages + counts.requests > 0 && <IonBadge color="danger">{badgeCount(counts.messages + counts.requests)}</IonBadge>}
           </IonTabButton>
 
           <IonTabButton
@@ -101,6 +109,8 @@ const AppTabs: React.FC = () => {
         </IonTabBar>
       </IonTabs>
 
+      <Route exact path="/app/notifications"><NotificationsPage /></Route>
+      <Route exact path="/app/notifications/settings"><NotificationSettingsPage /></Route>
       {/* Chat page */}
       <Route exact path="/app/chatPage">
         <ChatPage />

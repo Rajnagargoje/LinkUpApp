@@ -1,4 +1,4 @@
-import { IonBackButton, IonButton, IonButtons, IonContent, IonFooter, IonHeader, IonIcon, IonInput, IonPage, IonSpinner, IonTitle, IonToolbar } from "@ionic/react";
+import { IonBackButton, IonButton, IonButtons, IonContent, IonFooter, IonHeader, IonIcon, IonInput, IonPage, IonTitle, IonToolbar } from "@ionic/react";
 import { personCircle, send } from "ionicons/icons";
 import React, { useEffect, useRef, useState } from "react";
 import { IonAlert } from "@ionic/react";
@@ -143,20 +143,30 @@ const OneTwoOneChat: React.FC = () => {
   return (
     <IonPage className="random-chat-page">
       <IonAlert isOpen={reportOpen} onDidDismiss={() => setReportOpen(false)} header="Report & block" message="Your reason and the last 20 messages will be saved for review. This ends the chat and blocks this identity." inputs={[{ name: "reason", type: "textarea", placeholder: "What happened?", attributes: { maxlength: 500 } }]} buttons={["Cancel", { text: "Submit report", handler: (data: { reason: string }) => { if (!data.reason?.trim()) return false; socketService.publish("/app/random/report", { matchId: matchId.current, content: data.reason }); return true; } }]} />
-      <IonHeader><IonToolbar>
-        <IonButtons slot="start"><IonBackButton defaultHref="/app/home" /></IonButtons>
-        <IonTitle>{phase === "matched" ? partner : "Random chat"}</IonTitle>
+      <IonHeader><IonToolbar className="random-toolbar">
+        <IonButtons slot="start"><IonBackButton defaultHref="/app/home" className="random-back-btn" /></IonButtons>
+        <IonTitle>{phase === "matched" ? partner : "Random Chat"}</IonTitle>
       </IonToolbar></IonHeader>
-      <IonContent ref={contentRef}>
-        <div className="random-status" role="status">{status}{phase === "matched" ? partnerGuest ? " · Guest" : " · Registered member" : ""}</div>
-        {(phase === "idle" || phase === "ended") && <div className="ion-padding">
-          <IonInput label="Preferred language (optional)" value={language} maxlength={40} onIonInput={event => setLanguage(event.detail.value ?? "")} />
-          <IonInput label="Interests (optional, comma separated)" value={interests} maxlength={400} onIonInput={event => setInterests(event.detail.value ?? "")} />
-          <p>Preferences prioritize available matches. Website guests and app members share this pool.</p>
+      <IonContent ref={contentRef} className="random-content">
+        <div className={`random-status random-status--${phase}`} role="status">
+          <span className={`random-status-dot ${connected && phase === "matched" ? "random-status-dot--live" : ""}`} />
+          {status}{phase === "matched" ? partnerGuest ? " · Guest" : " · Registered member" : ""}
+        </div>
+        {(phase === "idle" || phase === "ended") && <div className="random-prefs-card">
+          <IonInput label="Preferred language (optional)" value={language} maxlength={40} fill="outline" labelPlacement="floating" onIonInput={event => setLanguage(event.detail.value ?? "")} />
+          <IonInput label="Interests (optional, comma separated)" value={interests} maxlength={400} fill="outline" labelPlacement="floating" className="ion-margin-top" onIonInput={event => setInterests(event.detail.value ?? "")} />
+          <p className="random-prefs-hint">Preferences prioritize available matches. Website guests and app members share this pool.</p>
         </div>}
         {notice && <p className="random-notice" role="alert">{notice}</p>}
         {messages.length === 0 && <div className="empty-chat">
-          {phase === "waiting" ? <IonSpinner name="crescent" /> : <IonIcon icon={personCircle} className="empty-chat-icon" />}
+          {phase === "waiting" ? (
+            <div className="radar-wrap" aria-hidden="true">
+              <span className="radar-ring radar-ring--1" />
+              <span className="radar-ring radar-ring--2" />
+              <span className="radar-ring radar-ring--3" />
+              <div className="radar-core"><IonIcon icon={personCircle} /></div>
+            </div>
+          ) : <IonIcon icon={personCircle} className="empty-chat-icon" />}
           <h3>{phase === "waiting" ? "Finding your next conversation" : phase === "matched" ? `Say hello to ${partner}` : "Meet someone new"}</h3>
           <p>{phase === "waiting" ? "Waiting for another person. You can cancel anytime." : phase === "matched" ? "You’re connected. Send the first message." : "Tap New chat to find a conversation partner."}</p>
         </div>}
@@ -170,20 +180,20 @@ const OneTwoOneChat: React.FC = () => {
         </div>
       </IonContent>
       <IonFooter>
-        {phase === "matched" && <IonToolbar>
-          <IonButton disabled={busy} onClick={() => socketService.publish("/app/random/connect", { matchId: matchId.current })}>Keep in touch</IonButton>
-          <IonButton fill="clear" disabled={busy} onClick={() => socketService.publish("/app/random/block", { matchId: matchId.current })}>Block & leave</IonButton>
-          <IonButton fill="clear" onClick={() => setReportOpen(true)}>Report</IonButton>
+        {phase === "matched" && <IonToolbar className="random-action-toolbar">
+          <IonButton className="random-action-btn random-action-btn--primary" disabled={busy} onClick={() => socketService.publish("/app/random/connect", { matchId: matchId.current })}>Keep in touch</IonButton>
+          <IonButton className="random-action-btn" fill="clear" disabled={busy} onClick={() => socketService.publish("/app/random/block", { matchId: matchId.current })}>Block & leave</IonButton>
+          <IonButton className="random-action-btn" fill="clear" onClick={() => setReportOpen(true)}>Report</IonButton>
         </IonToolbar>}
-        <IonToolbar>
-          <IonButton onClick={start} disabled={!connected || busy || phase === "waiting"}>{phase === "matched" ? "Next person" : "New chat"}</IonButton>
-          <IonButton fill="outline" onClick={end} disabled={!connected || busy || (phase !== "matched" && phase !== "waiting")}>{phase === "waiting" ? "Cancel search" : "End chat"}</IonButton>
+        <IonToolbar className="random-action-toolbar">
+          <IonButton className="random-action-btn random-action-btn--primary" onClick={start} disabled={!connected || busy || phase === "waiting"}>{phase === "matched" ? "Next person" : "New chat"}</IonButton>
+          <IonButton className="random-action-btn" fill="outline" onClick={end} disabled={!connected || busy || (phase !== "matched" && phase !== "waiting")}>{phase === "waiting" ? "Cancel search" : "End chat"}</IonButton>
         </IonToolbar>
-        <IonToolbar>
-          <IonInput aria-label="Message" placeholder={phase === "matched" ? "Type a message" : "Start a chat to send messages"} value={input} maxlength={2000}
+        <IonToolbar className="random-input-toolbar">
+          <IonInput className="random-input" aria-label="Message" placeholder={phase === "matched" ? "Type a message" : "Start a chat to send messages"} value={input} maxlength={2000}
             disabled={!connected || busy || phase !== "matched"} onIonInput={event => setInput(event.detail.value ?? "")}
             onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); sendMessage(); } }} />
-          <IonButton slot="end" aria-label="Send message" disabled={!connected || busy || phase !== "matched" || !input.trim()} onClick={sendMessage}><IonIcon slot="icon-only" icon={send} /></IonButton>
+          <IonButton slot="end" className="random-send-btn" aria-label="Send message" disabled={!connected || busy || phase !== "matched" || !input.trim()} onClick={sendMessage}><IonIcon slot="icon-only" icon={send} /></IonButton>
         </IonToolbar>
       </IonFooter>
     </IonPage>

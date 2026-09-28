@@ -10,6 +10,7 @@ import {
   IonSpinner,
   IonToast,
   useIonRouter,
+  useIonViewWillEnter,
 } from "@ionic/react";
 
 import {
@@ -118,6 +119,7 @@ const PeoplePage: React.FC = () => {
   const fetchNearbyPeople = async () => {
     try {
       setLoading(true);
+      setPeople([]);
 
       /*
        * Get GPS location
@@ -178,7 +180,18 @@ const PeoplePage: React.FC = () => {
     catch { setToastMessage("Unable to load people. Please try again."); }
     finally { setLoading(false); }
   };
-  useEffect(() => { void fetchPeople(); }, []);
+  useIonViewWillEnter(() => {
+    // Ionic keeps tabs mounted. Clear cached cards and reload after safety/friendship changes.
+    setPeople([]);
+    if (activeFilter === "nearby") {
+      setLoading(true);
+      setPeople([]);
+      void getNearbyPeople(user!.username)
+        .then(response => setPeople(response.data))
+        .catch(() => setToastMessage("Unable to load nearby people. Please try again."))
+        .finally(() => setLoading(false));
+    } else void fetchPeople();
+  }, [activeFilter, user?.username]);
 
   /*
    * ----------------------------------------------------

@@ -1,3 +1,4 @@
+import { clearDeliveredMessages } from "./pushService";
 import { ConversationResponse, ChatMessageResponse } from "../common/chat.model";
 import { ENDPOINTS } from "../config/api.config";
 import axiosClient from "./axiosClient";
@@ -53,9 +54,11 @@ export async function markConversationRead(
   conversationId: number,
   messageId: number,
 ) {
-  return axiosClient.patch(ENDPOINTS.markConversationRead(conversationId), null, {
+  const response = await axiosClient.patch(ENDPOINTS.markConversationRead(conversationId), null, {
     params: { messageId },
   });
+  await clearDeliveredMessages(conversationId, messageId);
+  return response;
 }
 
 export async function markMessageDelivered(messageId: number) {

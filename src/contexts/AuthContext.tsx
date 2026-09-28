@@ -16,6 +16,7 @@ import {
   setStoredUser,
   setToken,
 } from "../service/tokenStorage";
+import { detachPushDevice } from "../service/pushService";
 import { AUTH_LOGOUT_EVENT } from "../service/axiosClient";
 
 interface AuthContextValue {
@@ -63,12 +64,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     if (opts?.silent) {
+      void detachPushDevice();
       clearLocalSession();
       return;
     }
 
-    userService
-      .logout()
+    detachPushDevice().then(() => userService.logout())
       .catch(() => {})
       .finally(clearLocalSession);
   }, []);
@@ -165,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const deleteAccount = useCallback(async () => {
+    await detachPushDevice();
     await userService.deleteAccount();
     clearSession();
     setTokenState(null);

@@ -1,9 +1,10 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
+  appId: 'com.linkup.app',
   appName: 'LinkUpApp',
   webDir: 'dist',
+  plugins: { PushNotifications: { presentationOptions: [] } },
   server: {
     androidScheme: 'https'
   }

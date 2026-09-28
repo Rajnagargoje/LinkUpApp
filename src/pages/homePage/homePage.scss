@@ -190,4 +190,8 @@
   --border-color: var(--ion-color-warning);
   --border-width: 1.5px;
   font-weight: 600;
-}
+}.home-room-list { width: min(100%, 720px); margin: 0 auto; }
+.home-welcome { padding: 6px 6px 18px; h1 { font-size: 25px; font-weight: 750; letter-spacing: -.6px; } p { font-size: 14px; color: var(--ion-color-medium); line-height: 1.5; } }
+.home-room-status { padding: 24px; text-align: center; color: var(--ion-color-medium); }
+.system-room-card-topic { font-weight: 650; margin-bottom: 8px; color: var(--ion-text-color); }
+.room-info-link { color: var(--ion-color-primary); font-weight: 650; font-size: 13px; }
