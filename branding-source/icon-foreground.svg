@@ -1,0 +1,14 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Scaled + centered so the glyph sits inside Android's adaptive-icon
+       safe zone (~66% of canvas) — otherwise circular/squircle launcher
+       masks on different phones will crop the edges. -->
+  <g transform="translate(512 512) scale(0.62) translate(-512 -512)">
+    <path
+      d="M512 232c-159 0-288 111-288 248 0 78 42 148 108 194 -6 34-22 64-46 88 -6 6-2 16 7 16 48-2 94-19 132-48 27 7 57 10 87 10 159 0 288-111 288-248S671 232 512 232Z"
+      fill="#ffffff"
+    />
+    <circle cx="420" cy="480" r="34" fill="#764ba2" />
+    <circle cx="512" cy="480" r="34" fill="#764ba2" />
+    <circle cx="604" cy="480" r="34" fill="#764ba2" />
+  </g>
+</svg>

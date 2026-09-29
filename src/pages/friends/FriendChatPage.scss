@@ -1,0 +1,184 @@
+.friend-chat-header ion-toolbar {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+  --border-color: var(--ion-border-color, rgba(127, 127, 127, 0.16));
+}
+
+.friend-chat-user {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+}
+
+.friend-chat-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.friend-chat-avatar ion-icon,
+.friend-chat-message-avatar ion-icon {
+  width: 100%;
+  height: 100%;
+  color: var(--ion-color-medium);
+}
+
+.friend-chat-user-copy {
+  min-width: 0;
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.friend-chat-user-copy strong {
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.friend-chat-user-copy span {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ion-color-medium);
+}
+
+.friend-chat-content {
+  --background: var(--ion-background-color);
+}
+
+.friend-chat-loading,
+.friend-chat-empty {
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 28px;
+  color: var(--ion-color-medium);
+}
+
+.friend-chat-empty ion-icon {
+  font-size: 72px;
+  opacity: 0.45;
+}
+
+.friend-chat-empty h3 {
+  margin: 4px 0 0;
+  color: var(--ion-text-color);
+  font-size: 18px;
+}
+
+.friend-chat-empty p {
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.45;
+}
+
+.friend-chat-message-list {
+  min-height: 100%;
+  padding: 18px 12px 14px;
+}
+
+.friend-chat-message-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+
+.friend-chat-message-row.mine {
+  justify-content: flex-end;
+}
+
+.friend-chat-message-row.theirs {
+  justify-content: flex-start;
+}
+
+.friend-chat-message-avatar {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  margin-right: 7px;
+}
+
+.friend-chat-bubble-wrap {
+  max-width: 78%;
+}
+
+.friend-chat-bubble {
+  padding: 9px 11px 6px;
+  border-radius: 17px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.friend-chat-bubble.mine {
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast, #fff);
+  border-bottom-right-radius: 5px;
+}
+
+.friend-chat-bubble.theirs {
+  background: var(--ion-card-background, rgba(127, 127, 127, 0.12));
+  color: var(--ion-text-color);
+  border-bottom-left-radius: 5px;
+}
+
+.friend-chat-bubble.deleted {
+  opacity: 0.72;
+  font-style: italic;
+}
+
+.friend-chat-message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+.friend-chat-message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: 9.5px;
+  opacity: 0.72;
+}
+
+.friend-chat-message-meta ion-icon {
+  font-size: 13px;
+}
+
+.friend-chat-footer ion-toolbar {
+  --background: var(--ion-background-color);
+  --border-color: var(--ion-border-color, rgba(127, 127, 127, 0.16));
+}
+
+.friend-chat-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
+}
+
+.friend-chat-composer ion-input {
+  flex: 1;
+  min-height: 43px;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --background: var(--ion-card-background, rgba(127, 127, 127, 0.1));
+  border-radius: 22px;
+}
+
+.friend-chat-send {
+  width: 43px;
+  height: 43px;
+  margin: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}

@@ -27,7 +27,10 @@ const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    username?: string;
+    password?: string;
+  }>({});
 
   const validate = () => {
     const next: typeof errors = {};
@@ -50,6 +53,7 @@ const LoginPage: React.FC = () => {
       router.push("/app/home", "root");
     } catch (error: any) {
       dismiss();
+      console.error("Login failed:", error);
       const message =
         error?.response?.data?.message ||
         (error?.response?.status === 401

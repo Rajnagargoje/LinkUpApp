@@ -1,9 +1,9 @@
-import React, { ReactNode, useState } from "react";
-import { IonContent, IonIcon, IonPage } from "@ionic/react";
+import React, { useEffect, useState } from "react";
+import { IonContent, IonIcon, IonPage, IonSpinner } from "@ionic/react";
+
 import {
   chevronBackOutline,
   ellipsisHorizontal,
-  locationOutline,
   checkmarkCircle,
   closeOutline,
   personAddOutline,
@@ -12,100 +12,179 @@ import {
   shareSocialOutline,
   personCircleOutline,
 } from "ionicons/icons";
-import { useHistory, useLocation } from "react-router";
+
+import { useHistory, useParams } from "react-router";
 
 import "./PersonDetailPage.scss";
-interface Person {
-  distanceKm: ReactNode;
-  lookingFor: ReactNode;
-  bio: ReactNode;
-  essentials: any;
-  basics: any;
-  interests: any;
-  id: string;
-  name: string;
-  age: number;
-  meta: string;
-  online: boolean;
-  verified?: boolean;
-  accent: "primary" | "secondary" | "success" | "warning";
-}
-type Tab = "about" | "posts" | "connections";
 
-// Stand-ins for multiple profile photos — swap for the person's real photo
-// URLs once your API returns them. Kept as flat accent colors, same
-// reasoning as the grid: no real photos used here.
-const PHOTO_SLOTS = ["primary", "secondary", "success", "warning"] as const;
+import { Person } from "../../common/person.model";
+import { getPersonProfile } from "../../service/peopleService";
+import { formatRelativeTime, toTitleCase } from "../../config/date.time.format";
+import { sendConnectionRequest } from "../../service/connectionService";
+import { getOrCreateDirectConversation } from "../../service/chatService";
+import toast from "react-hot-toast";
+
+type Tab = "about" | "posts";
 
 const PersonDetailPage: React.FC = () => {
   const history = useHistory();
-  const location = useLocation<{ person?: Person }>();
-  const person = location.state?.person;
+
+  const { personId } = useParams<{ personId: string }>();
+
+  const [person, setPerson] = useState<Person | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [activePhoto, setActivePhoto] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("about");
-  const [connectState, setConnectState] = useState<"idle" | "requested">(
-    "idle",
-  );
+  const [connectionStatus, setConnectionStatus] = useState<
+    "NONE" | "REQUEST_SENT" | "REQUEST_RECEIVED" | "CONNECTED"
+  >("NONE");
 
-  if (!person) {
-    // Guards against a direct/refreshed URL with no state — send them back
-    // to the grid instead of rendering an empty detail page.
-    // history.replace("/app/people");
-    return null;
+  const [connectionLoading, setConnectionLoading] = useState(false);
+
+  useEffect(() => {
+    if (!personId) {
+      setError("Invalid profile.");
+      setLoading(false);
+      return;
+    }
+
+    const loadPersonProfile = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const profile = await getPersonProfile(personId);
+        setPerson(profile.data);
+        setConnectionStatus(profile.data.connectionStatus ?? "NONE");
+        setActivePhoto(0);
+      } catch (error) {
+        console.error("Failed to load person profile:", error);
+        setError("Unable to load this profile.");
+        setPerson(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPersonProfile();
+  }, [personId]);
+
+  const handleConnect = async () => {
+    if (!person) {
+      return;
+    }
+
+    if (connectionStatus !== "NONE") {
+      return;
+    }
+
+    try {
+      setConnectionLoading(true);
+
+      await sendConnectionRequest(person.id);
+
+      setConnectionStatus("REQUEST_SENT");
+    } catch (error) {
+      console.error("Failed to send connection request:", error);
+    } finally {
+      setConnectionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <IonPage>
+        <IonContent className="person-detail-loading">
+          <IonSpinner name="crescent" />
+          <p>Loading profile...</p>
+        </IonContent>
+      </IonPage>
+    );
   }
+
+  if (error || !person) {
+    return (
+      <IonPage>
+        <IonContent className="person-detail-error">
+          <IonIcon icon={personCircleOutline} className="error-profile-icon" />
+          <h2>Profile unavailable</h2>
+          <p>{error || "This profile could not be found."}</p>
+          <button className="error-back-btn" onClick={() => history.goBack()}>
+            Go Back
+          </button>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
+  const displayName = person.name ?? person.username;
+
+  const photos = person.photos ?? [];
+  const photoCount = photos.length > 0 ? photos.length : 1;
+  const currentPhoto = photos.length > 0 ? photos[activePhoto] : undefined;
 
   const handlePhotoTap = (event: React.MouseEvent<HTMLDivElement>) => {
     const { left, width } = event.currentTarget.getBoundingClientRect();
     const tappedRight = event.clientX - left > width / 2;
 
     setActivePhoto((prev) => {
-      if (tappedRight) return Math.min(prev + 1, PHOTO_SLOTS.length - 1);
+      if (tappedRight) return Math.min(prev + 1, photoCount - 1);
       return Math.max(prev - 1, 0);
     });
   };
 
-  const handleConnect = () => {
-    setConnectState((prev) => (prev === "idle" ? "requested" : "idle"));
-  };
-
-  const handleMessage = () => {
-    history.push("/app/chatPage", {
-      username: person.name,
-      roomId: `dm-${person.id}`,
-    });
+  const handleMessage = async () => {
+    try {
+      const conversation = await getOrCreateDirectConversation(person.id);
+      history.push(`/app/friend-chat/${conversation.conversationId}`, { conversation });
+    } catch { toast.error("Unable to open this conversation."); }
   };
 
   const handleShare = async () => {
     const shareData = {
-      title: `${person.name} on LinkUp`,
-      text: `Check out ${person.name}'s profile on LinkUp`,
+      title: `${displayName} on LinkUp`,
+      text: `Check out ${displayName}'s profile on LinkUp`,
       url: window.location.href,
     };
+
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch {
-        // user cancelled the native share sheet — nothing to do
-      }
+      } catch {}
     } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareData.url);
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+      } catch (error) {
+        console.error("Failed to copy profile URL:", error);
+      }
     }
   };
 
   return (
     <IonPage>
       <IonContent fullscreen scrollY={true} className="person-detail-content">
-        {/* PHOTO HERO — tap left/right halves to move through photo slots */}
         <div
-          className={`person-hero person-hero--${PHOTO_SLOTS[activePhoto]}`}
+          className="person-hero"
           onClick={handlePhotoTap}
+          style={
+            currentPhoto
+              ? {
+                  backgroundImage: `url(${currentPhoto})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
         >
           <div className="person-hero-segments">
-            {PHOTO_SLOTS.map((_, index) => (
+            {Array.from({ length: photoCount }).map((_, index) => (
               <span
                 key={index}
-                className={`segment ${index <= activePhoto ? "segment--filled" : ""}`}
+                className={`segment ${
+                  index === activePhoto ? "segment--filled" : ""
+                }`}
               />
             ))}
           </div>
@@ -113,50 +192,63 @@ const PersonDetailPage: React.FC = () => {
           <div className="person-hero-topbar">
             <button
               className="hero-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={(event) => {
+                event.stopPropagation();
                 history.goBack();
               }}
               aria-label="Back"
             >
               <IonIcon icon={chevronBackOutline} />
             </button>
+
             <button
               className="hero-icon-btn"
               aria-label="More options"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
             >
               <IonIcon icon={ellipsisHorizontal} />
             </button>
           </div>
 
-          <div className="person-hero-avatar">
-            <IonIcon icon={personCircleOutline} />
-          </div>
+          {!currentPhoto && (
+            <div className="person-hero-avatar">
+              <IonIcon icon={personCircleOutline} />
+            </div>
+          )}
 
           <div className="person-hero-scrim" />
 
           <div className="person-hero-info">
-            <span className="nearby-badge">Nearby</span>
-            <span className="distance-row">
-              <IonIcon icon={locationOutline} />
-              {person.distanceKm} km away
-            </span>
             <div className="person-name-row">
               <h1>
-                {person.name}, {person.age}
+                {displayName}
+                {person.age !== undefined && `, ${person.age}`}
               </h1>
               {person.verified && (
                 <IonIcon icon={checkmarkCircle} className="person-verified" />
               )}
             </div>
-            <span className="looking-for-chip">
-              Looking for {person.lookingFor}
-            </span>
+
+            <span className="person-username">@{person.username}</span>
+
+            {person.online ? (
+              <span className="online-status">Online</span>
+            ) : (
+              person.lastSeenAt && (
+                <span className="online-status online-status--offline">
+                  Last seen {formatRelativeTime(person.lastSeenAt)}
+                </span>
+              )
+            )}
+
+            {person.lookingFor && (
+              <span className="looking-for-chip">
+                Looking for {toTitleCase(person.lookingFor)}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* TABS */}
         <div className="person-tabs">
           <button
             className={`tab ${activeTab === "about" ? "active" : ""}`}
@@ -170,53 +262,41 @@ const PersonDetailPage: React.FC = () => {
           >
             Posts
           </button>
-          <button
-            className={`tab ${activeTab === "connections" ? "active" : ""}`}
-            onClick={() => setActiveTab("connections")}
-          >
-            Connections 300+
-          </button>
         </div>
 
         {activeTab === "about" && (
           <div className="person-content">
-            <section className="info-section">
-              <h3>Bio</h3>
-              <p className="bio">{person.bio}</p>
-            </section>
+            {person.bio && (
+              <section className="info-section">
+                <h3>Bio</h3>
+                <p className="bio">{person.bio}</p>
+              </section>
+            )}
 
             <section className="info-section">
               <h3>Essentials</h3>
               <div className="chips">
-                {person.essentials.map((item: any) => (
-                  <span className="chip" key={item}>
-                    {item}
-                  </span>
-                ))}
+                {person.age !== undefined && (
+                  <span className="chip">{person.age} years</span>
+                )}
+                {person.gender && (
+                  <span className="chip">{toTitleCase(person.gender)}</span>
+                )}
               </div>
             </section>
 
-            <section className="info-section">
-              <h3>Basics</h3>
-              <div className="chips">
-                {person.basics.map((item: any) => (
-                  <span className="chip" key={item}>
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </section>
-
-            <section className="info-section">
-              <h3>Interests</h3>
-              <div className="chips">
-                {person.interests.map((item: any) => (
-                  <span className="chip" key={item}>
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </section>
+            {person.interests && person.interests.length > 0 && (
+              <section className="info-section">
+                <h3>Interests</h3>
+                <div className="chips">
+                  {person.interests.map((item) => (
+                    <span className="chip" key={item}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <button className="share-profile-btn" onClick={handleShare}>
               <IonIcon icon={shareSocialOutline} />
@@ -229,44 +309,60 @@ const PersonDetailPage: React.FC = () => {
           <div className="person-content">
             <div className="empty-state">
               <h3>No posts yet</h3>
-              <p>{person.name} hasn't shared anything yet.</p>
+              <p>{displayName} hasn't shared anything yet.</p>
             </div>
           </div>
         )}
 
-        {activeTab === "connections" && (
-          <div className="person-content">
-            <div className="empty-state">
-              <h3>300+ connections</h3>
-              <p>Mutual connections will show up here.</p>
-            </div>
-          </div>
-        )}
-
-        {/* spacer so content isn't hidden behind the fixed action bar */}
         <div className="action-bar-spacer" />
       </IonContent>
 
-      {/* ACTION BAR — Pass / Connect / Message */}
       <div className="person-action-bar">
         <button className="action-btn action-btn--pass" aria-label="Pass">
           <IonIcon icon={closeOutline} />
         </button>
 
-        <button
-          className={`action-btn action-btn--connect ${
-            connectState === "requested" ? "action-btn--connect-active" : ""
-          }`}
-          onClick={handleConnect}
-        >
-          <IonIcon
-            icon={
-              connectState === "requested" ? checkmarkOutline : personAddOutline
-            }
-          />
-          {connectState === "requested" ? "Requested" : "Connect"}
-        </button>
+        {connectionStatus === "NONE" && (
+          <button
+            className="action-btn action-btn--connect"
+            onClick={handleConnect}
+            disabled={connectionLoading}
+          >
+            <IonIcon icon={personAddOutline} />
 
+            {connectionLoading ? "Sending..." : "Connect"}
+          </button>
+        )}
+
+        {connectionStatus === "REQUEST_SENT" && (
+          <button
+            className="action-btn action-btn--connect action-btn--connect-active"
+            disabled
+          >
+            <IonIcon icon={checkmarkOutline} />
+            Requested
+          </button>
+        )}
+
+        {connectionStatus === "REQUEST_RECEIVED" && (
+          <button
+            className="action-btn action-btn--connect"
+            onClick={() => history.push("/app/friends")}
+          >
+            <IonIcon icon={personAddOutline} />
+            Respond
+          </button>
+        )}
+
+        {connectionStatus === "CONNECTED" && (
+          <button
+            className="action-btn action-btn--connect action-btn--connect-active"
+            disabled
+          >
+            <IonIcon icon={checkmarkOutline} />
+            Friends
+          </button>
+        )}
         <button
           className="action-btn action-btn--message"
           onClick={handleMessage}

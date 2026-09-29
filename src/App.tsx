@@ -22,6 +22,7 @@ import "@ionic/react/css/display.css";
 /* Theme variables */
 import "./theme/variables.scss";
 import AppTabs from "./AppTabs";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import LoginPage from "./authentication/LoginPage";
 import SignUpPage from "./authentication/SignUpPage";
 import VerifyEmailPage from "./authentication/VerifyEmailPage";
@@ -48,7 +49,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <IonReactRouter>
+    <IonReactRouter><NotificationProvider>
       <Switch>
         <PublicRoute exact path="/">
           <LoginPage />
@@ -72,7 +73,7 @@ const AppRoutes: React.FC = () => {
           <Redirect to="/" />
         </Route>
       </Switch>
-    </IonReactRouter>
+    </NotificationProvider></IonReactRouter>
   );
 };
 

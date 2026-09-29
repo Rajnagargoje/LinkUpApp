@@ -88,6 +88,12 @@ const SettingsPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
+        <IonList className="settings-list settings-section">
+          <IonItem button routerLink="/app/notifications/settings" detail>
+            <IonIcon icon={mailOutline} slot="start" />
+            <IonLabel>Notifications</IonLabel>
+          </IonItem>
+        </IonList>
         <IonSegment
           value={theme}
           onIonChange={(e) => setTheme(e.detail.value as any)}

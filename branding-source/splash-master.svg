@@ -1,0 +1,53 @@
+<svg width="2732" height="2732" viewBox="0 0 2732 2732" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mark" x1="10%" y1="0%" x2="95%" y2="100%">
+      <stop offset="0%" stop-color="#667eea" />
+      <stop offset="100%" stop-color="#764ba2" />
+    </linearGradient>
+    <radialGradient id="splashGlow" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="#667eea" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#667eea" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- solid dark background — matches the app's dark theme so the splash
+       doesn't flash a jarring different color before the JS app paints -->
+  <rect width="2732" height="2732" fill="#18172a" />
+  <circle cx="1366" cy="1180" r="700" fill="url(#splashGlow)" />
+
+  <!-- rounded-square glyph badge, centered -->
+  <g transform="translate(1366 1180)">
+    <rect x="-260" y="-260" width="520" height="520" rx="130" fill="url(#mark)" />
+    <g transform="translate(-165 -165) scale(0.90)">
+      <path
+        d="M180 40c-77 0-140 54-140 121 0 38 20 72 53 94 -3 17-11 31-22 43 -3 3-1 8 3 8 23-1 46-9 64-23 13 3 28 5 42 5 77 0 140-54 140-121S257 40 180 40Z"
+        fill="#ffffff"
+      />
+      <circle cx="140" cy="127" r="16" fill="#764ba2" />
+      <circle cx="180" cy="127" r="16" fill="#764ba2" />
+      <circle cx="220" cy="127" r="16" fill="#764ba2" />
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <text
+    x="1366"
+    y="1620"
+    text-anchor="middle"
+    font-family="-apple-system, Helvetica, Arial, sans-serif"
+    font-size="120"
+    font-weight="800"
+    letter-spacing="-2"
+    fill="#ffffff"
+  >LinkUp</text>
+  <text
+    x="1366"
+    y="1680"
+    text-anchor="middle"
+    font-family="-apple-system, Helvetica, Arial, sans-serif"
+    font-size="34"
+    font-weight="500"
+    letter-spacing="2"
+    fill="#b6b1c9"
+  >CONNECT. CHAT. BELONG.</text>
+</svg>

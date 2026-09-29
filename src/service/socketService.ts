@@ -70,6 +70,12 @@ class SocketService {
         this.notify(false);
       };
 
+      client.onWebSocketClose = () => {
+        if (this.client !== client) return;
+        this.subscriptions.clear();
+        this.notify(false);
+      };
+
       client.onStompError = (frame) => {
         console.error("STOMP error:", frame.headers["message"], frame.body);
         reject(new Error(frame.headers["message"] || "STOMP error"));

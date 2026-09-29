@@ -21,6 +21,7 @@ import { useHistory } from "react-router";
 import toast from "react-hot-toast";
 import "./OnboardingPage.scss";
 import { useAuth } from "../../contexts/AuthContext";
+import { Geolocation } from "@capacitor/geolocation";
 import * as userService from "../../service/userService";
 import { MAX_PHOTOS, MAX_PHOTO_SIZE_MB } from "../../config/api.config";
 
@@ -188,22 +189,42 @@ const OnboardingPage: React.FC = () => {
      PERMISSIONS — real browser API calls, not decorative
   ========================================================= */
 
-  const requestLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setPermissions((p) => ({ ...p, location: "unsupported" }));
-      return;
-    }
+  const requestLocation = async () => {
     setPermissions((p) => ({ ...p, location: "requesting" }));
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        setPermissions((p) => ({ ...p, location: "granted" }));
-      },
-      () => setPermissions((p) => ({ ...p, location: "denied" }))
-    );
+
+    try {
+      const currentPermission = await Geolocation.checkPermissions();
+      let locationGranted =
+        currentPermission.location === "granted" ||
+        currentPermission.coarseLocation === "granted";
+
+      if (!locationGranted) {
+        const requestedPermission = await Geolocation.requestPermissions();
+        locationGranted =
+          requestedPermission.location === "granted" ||
+          requestedPermission.coarseLocation === "granted";
+      }
+
+      if (!locationGranted) {
+        setPermissions((p) => ({ ...p, location: "denied" }));
+        return;
+      }
+
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      });
+
+      setCoords({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setPermissions((p) => ({ ...p, location: "granted" }));
+    } catch (error) {
+      console.error("Location permission error:", error);
+      setPermissions((p) => ({ ...p, location: "denied" }));
+    }
   };
 
   const requestCamera = async () => {
