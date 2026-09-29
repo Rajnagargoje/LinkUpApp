@@ -22,6 +22,7 @@ import {
 } from "ionicons/icons";
 
 import { useCallback, useEffect, useState } from "react";
+import { Geolocation, Position } from "@capacitor/geolocation";
 
 import Header from "../../header/Header";
 import "./PeoplePage.scss";
@@ -63,19 +64,27 @@ const PeoplePage: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState("");
 
-  const getCurrentLocation = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported by this device."));
+  const getCurrentLocation = async (): Promise<Position> => {
+    const permission = await Geolocation.checkPermissions();
 
-        return;
+    if (
+      permission.location !== "granted" &&
+      permission.coarseLocation !== "granted"
+    ) {
+      const requested = await Geolocation.requestPermissions();
+
+      if (
+        requested.location !== "granted" &&
+        requested.coarseLocation !== "granted"
+      ) {
+        throw new Error("Location permission was denied.");
       }
+    }
 
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      });
+    return Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000,
     });
   };
 
