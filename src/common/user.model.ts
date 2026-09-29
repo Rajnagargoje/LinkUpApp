@@ -1,8 +1,3 @@
-// Matches the backend's UserDTO exactly (see /register, /login → /me,
-// PATCH /me). The backend never returns the raw sequential `id` — only
-// `publicId` (a UUID) — so don't add `id` back here; it doesn't exist
-// on the wire.
-
 export type Role = "USER" | "ADMIN";
 export type UserStatus = "ONLINE" | "OFFLINE" | "BUSY" | string;
 export type Gender = "MALE" | "FEMALE" | "NON_BINARY" | "PREFER_NOT_TO_SAY";

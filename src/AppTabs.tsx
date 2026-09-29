@@ -1,6 +1,7 @@
 import { Redirect, Route, Switch } from "react-router-dom";
 import {
   IonIcon,
+  IonBadge,
   IonLabel,
   IonRouterOutlet,
   IonTabBar,
@@ -25,14 +26,22 @@ import ProfilePage from "./pages/profile/Me";
 import PeoplePage from "./pages/people/PeoplePage";
 import FriendsPage from "./pages/friends/FriendsPage";
 import PersonDetailPage from "./pages/people/PersonDetailsPage";
+
 import { useRealtimeConnection } from "./hooks/useRealtimeConnection";
+import FriendChatPage from "./pages/friends/FriendChatPage";
 
 // NOTE: this component renders *inside* the single top-level
 // <IonReactRouter> from App.tsx. It previously mounted its own nested
 // <IonApp>/<IonReactRouter>, which meant the app briefly had two
 // routers fighting over history — removed as part of the routing
 // cleanup.
+import { useNotifications } from "./contexts/NotificationContext";
+import { badgeCount } from "./service/notificationService";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
+import NotificationSettingsPage from "./pages/notifications/NotificationSettingsPage";
+
 const AppTabs: React.FC = () => {
+  const { counts } = useNotifications();
   // Opens the shared, authenticated real-time socket for as long as the
   // authenticated app shell is mounted, and cleanly tears it down on
   // logout / unmount.
@@ -77,6 +86,7 @@ const AppTabs: React.FC = () => {
           >
             <IonIcon icon={mailOutline} />
             <IonLabel>Messages</IonLabel>
+            {counts.messages + counts.requests > 0 && <IonBadge color="danger">{badgeCount(counts.messages + counts.requests)}</IonBadge>}
           </IonTabButton>
 
           <IonTabButton
@@ -99,9 +109,16 @@ const AppTabs: React.FC = () => {
         </IonTabBar>
       </IonTabs>
 
+      <Route exact path="/app/notifications"><NotificationsPage /></Route>
+      <Route exact path="/app/notifications/settings"><NotificationSettingsPage /></Route>
       {/* Chat page */}
       <Route exact path="/app/chatPage">
         <ChatPage />
+      </Route>
+
+      {/* Friend-to-friend direct chat */}
+      <Route exact path="/app/friend-chat/:conversationId">
+        <FriendChatPage />
       </Route>
 
       {/*ONE TWO ONE Chat page */}
@@ -113,7 +130,7 @@ const AppTabs: React.FC = () => {
         <SettingsPage />
       </Route>
       {/* Person detail — opened from the People grid */}
-      <Route exact path="/app/person/:id">
+      <Route exact path="/app/person/:personId">
         <PersonDetailPage />
       </Route>
     </>

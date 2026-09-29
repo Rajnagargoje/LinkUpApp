@@ -1,0 +1,39 @@
+.notifications-content { --background: var(--ion-background-color); }
+.notifications-container { max-width: 720px; margin: auto; padding: 20px 16px 40px; }
+.notifications-intro { display: flex; align-items: center; justify-content: space-between; gap: 10px; h1 { font-size: 24px; font-weight: 750; margin: 0 0 8px; } p { color: var(--ion-color-medium); line-height: 1.5; font-size: 13px; } ion-button { font-size: 12px; flex-shrink: 0; } }
+.notification-list { margin-top: 18px; }
+
+.notification-group { margin-top: 22px; }
+.notification-group:first-of-type { margin-top: 18px; }
+.notification-group-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ion-color-medium); margin: 0 4px 10px; }
+
+.notification-row-wrap { position: relative; margin-bottom: 10px; overflow: hidden; border-radius: 16px; }
+.notification-swipe-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-right: 22px; background: linear-gradient(90deg, transparent, rgba(var(--ion-color-primary-rgb), 0.18)); color: var(--ion-color-primary); font-size: 12px; font-weight: 700; }
+
+.notification-row { width: 100%; display: flex; gap: 13px; text-align: left; padding: 17px 14px; margin-bottom: 0; background: var(--linkup-card-bg); border: 1px solid var(--linkup-card-border); border-radius: 16px; color: var(--ion-text-color); cursor: pointer; position: relative; transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease; touch-action: pan-y; }
+.notification-row.is-unread { background: rgba(var(--ion-color-primary-rgb), .1); border-color: rgba(var(--ion-color-primary-rgb), .3); }
+
+.notification-icon { flex: 0 0 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: white; font-size: 20px; }
+.notification-icon--primary { background: var(--linkup-gradient); }
+.notification-icon--secondary { background: linear-gradient(135deg, var(--ion-color-secondary), var(--ion-color-secondary-shade)); }
+.notification-icon--success { background: linear-gradient(135deg, var(--ion-color-success), var(--ion-color-success-shade)); }
+.notification-icon--warning { background: linear-gradient(135deg, var(--ion-color-warning), var(--ion-color-warning-shade)); color: var(--ion-color-warning-contrast); }
+.notification-icon--medium { background: var(--ion-color-medium); }
+
+.notification-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; strong { font-size: 14px; } > span { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; } time { font-size: 11px; color: var(--ion-color-medium); } }
+.notification-dot { width: 8px; height: 8px; margin-top: 6px; flex-shrink: 0; border-radius: 50%; background: var(--ion-color-primary); }
+
+.notification-empty { padding: 48px 12px; text-align: center; color: var(--ion-color-medium); > ion-icon { font-size: 42px; color: var(--ion-color-primary); } h2 { color: var(--ion-text-color); font-size: 20px; } p { font-size: 14px; line-height: 1.6; } }
+.notification-empty--illustrated { padding-top: 56px; }
+.notification-empty-badge { width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--ion-color-primary-rgb), 0.12); ion-icon { font-size: 34px; color: var(--ion-color-primary); margin: 0; } }
+
+.notification-settings h1 { font-size: 26px; font-weight: 750; }
+.notification-settings > p { font-size: 14px; line-height: 1.6; color: var(--ion-color-medium); }
+.notification-settings-card { background: var(--linkup-card-bg); border: 1px solid var(--linkup-card-border); border-radius: 18px; padding: 20px; margin-top: 20px; h2 { font-size: 17px; margin-top: 0; } p { font-size: 13px; line-height: 1.6; } }
+.notification-setting { padding: 14px 0; border-bottom: 1px solid var(--linkup-card-border); &:last-child { border-bottom: 0; } ion-toggle { width: 100%; } p { color: var(--ion-color-medium); margin-bottom: 0; } }
+.notification-footnote { font-size: 12px !important; }
+.notification-toast { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; max-width: 320px; strong, span { display: block; } span { font-size: 13px; margin-top: 5px; overflow-wrap: anywhere; } }
+.notification-bell { position: relative; }
+.notification-bell ion-badge { position: absolute; top: 0; right: 0; font-size: 9px; min-width: 16px; pointer-events: none; }
+ion-segment-button ion-badge { margin-left: 6px; vertical-align: middle; font-size: 10px; }
+@media(max-width: 400px) { .notifications-intro { align-items: flex-start; flex-direction: column; } }

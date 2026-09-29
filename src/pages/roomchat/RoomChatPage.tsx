@@ -38,17 +38,20 @@ import {
   personCircleOutline,
 } from "ionicons/icons";
 import React, { useEffect, useRef, useState } from "react";
-import "./RoomChatPAge.scss";
+import "./RoomChatPage.scss";
 import { useHistory, useLocation } from "react-router";
 import toast from "react-hot-toast";
-import { getMessagesApi } from "../../service/roomService";
+import { getMessagesApi, SystemRoom } from "../../service/roomService";
 import { useAuth } from "../../contexts/AuthContext";
 import socketService from "../../service/socketService";
 import { STOMP } from "../../config/api.config";
 
+import SystemRoomInfo from "./SystemRoomInfo";
 interface ChatPageState {
   username?: string;
   roomId: string;
+  roomTitle?: string;
+  systemRoom?: SystemRoom;
 }
 
 interface Message {
@@ -67,6 +70,7 @@ const RoomChatPage: React.FC = () => {
   const username = user?.username ?? location.state?.username;
   const { roomId } = location.state || ({} as ChatPageState);
 
+  const [showInfo, setShowInfo] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [connected, setConnected] = useState(socketService.isConnected());
@@ -94,45 +98,18 @@ const RoomChatPage: React.FC = () => {
     loadMessages();
   }, [roomId]);
 
-  // Subscribe to this room's topic on the ALREADY-authenticated shared
-  // socket (opened for the whole session by useRealtimeConnection in
-  // AppTabs) instead of spinning up a brand-new, unauthenticated
-  // connection per chat screen.
+  useEffect(() => socketService.onConnectionChange(setConnected), []);
+
+  // Subscribe again after reconnect, including when the socket was already up on entry.
   useEffect(() => {
-    if (!roomId) return;
-
-    const unsubscribeConn = socketService.onConnectionChange(setConnected);
-
-    const subscribeToRoom = () => {
-      socketService.subscribe(
-        `room-${roomId}`,
-        STOMP.roomTopic(roomId),
-        (body: Message) => {
-          setMessages((prev) => [...prev, body]);
-        }
-      );
-    };
-
-    if (socketService.isConnected()) {
-      subscribeToRoom();
-    } else {
-      // Socket is still (re)connecting — subscribe as soon as it's up.
-      const unsub = socketService.onConnectionChange((isUp) => {
-        if (isUp) subscribeToRoom();
-      });
-      return () => {
-        unsub();
-        unsubscribeConn();
-        socketService.unsubscribe(`room-${roomId}`);
-      };
-    }
-
-    return () => {
-      unsubscribeConn();
-      socketService.unsubscribe(`room-${roomId}`);
-    };
-  }, [roomId]);
-
+    if (!roomId || !connected) return;
+    socketService.subscribe(
+      `room-${roomId}`,
+      STOMP.roomTopic(roomId),
+      (body: Message) => setMessages(previous => [...previous, body]),
+    );
+    return () => socketService.unsubscribe(`room-${roomId}`);
+  }, [roomId, connected]);
   useEffect(() => {
     const scrollToBottom = async () => {
       if (contentRef.current) {
@@ -188,7 +165,7 @@ const RoomChatPage: React.FC = () => {
             <IonIcon className="chat-user-avatar" icon={personCircle} />
 
             <div className="chat-user-details">
-              <div className="chat-user-name">{username}</div>
+              <div className="chat-user-name">{location.state?.roomTitle || roomId}</div>
 
               <div className="chat-user-status">
                 {connected ? "Online" : "Connecting…"}
@@ -196,25 +173,10 @@ const RoomChatPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Actions */}
           <IonButtons slot="end">
-            <IonButton fill="clear">
-              <IonIcon slot="icon-only" icon={videocamOutline} />
-            </IonButton>
-
-            <IonButton fill="clear">
-              <IonIcon slot="icon-only" icon={callOutline} />
-            </IonButton>
-
-            <IonButton fill="clear">
-              <IonIcon
-                slot="icon-only"
-                ios={ellipsisHorizontal}
-                md={ellipsisVertical}
-              />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
+            {location.state?.systemRoom && <IonButton onClick={() => setShowInfo(true)}>Room info</IonButton>}
+            <IonButton onClick={handleEndChat}>Leave</IonButton>
+          </IonButtons>        </IonToolbar>
       </IonHeader>
       <IonContent ref={contentRef}>
         <IonList className="message-list">
@@ -273,64 +235,29 @@ const RoomChatPage: React.FC = () => {
           })}
         </IonList>
       </IonContent>
-      {roomId == "" && (
-        <IonToolbar color={"light"}>
-          <IonButton
-            size="small"
-            slot="start"
-            fill="solid"
-            className="ion-margin-start"
-          >
-            NEW CHAT
-          </IonButton>
-
-          <IonButton
-            size="small"
-            slot="start"
-            fill="solid"
-            className="ion-margin-start"
-            onClick={handleEndChat}
-          >
-            END CHAT
-          </IonButton>
-          <IonButton fill="clear">
-            <IonIcon size="medium" slot="icon-only" icon={colorPaletteOutline} />
-          </IonButton>
-          <IonButton fill="clear">
-            <IonIcon size="medium" slot="icon-only" icon={personAddOutline} />
-          </IonButton>
-        </IonToolbar>
-      )}
       <IonToolbar>
         <IonInput
           fill="outline"
           placeholder="Type a message"
+          maxlength={2000}
+          disabled={!connected}
           className="chat-input"
           value={input}
           onIonInput={(event) => setInput(event.detail.value ?? "")}
           onKeyDown={handleKeyDown}
         ></IonInput>
-        <IonButton slot="start" fill="clear" size="small">
-          <IonIcon slot="icon-only" icon={happyOutline} />
-        </IonButton>
-
-        <IonButton slot="end" fill="clear" size="small">
-          <IonIcon slot="icon-only" icon={micOutline} />
-        </IonButton>
-
-        <IonButton slot="end" fill="clear" size="small">
-          <IonIcon slot="icon-only" icon={cameraOutline} />
-        </IonButton>
         <IonButton
           slot="end"
           fill="clear"
           size="small"
           disabled={!input.trim() || !connected}
+          aria-label="Send message"
           onClick={sendMessage}
         >
           <IonIcon slot="icon-only" icon={send} />
         </IonButton>
       </IonToolbar>
+      <SystemRoomInfo room={showInfo ? location.state?.systemRoom ?? null : null} onClose={() => setShowInfo(false)} />
     </IonPage>
   );
 };

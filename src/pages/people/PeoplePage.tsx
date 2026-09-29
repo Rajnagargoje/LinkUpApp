@@ -10,27 +10,32 @@ import {
   IonSpinner,
   IonToast,
   useIonRouter,
+  useIonViewWillEnter,
 } from "@ionic/react";
 
 import {
   checkmarkCircle,
   chatbubbleEllipsesOutline,
   locationOutline,
-  personCircleOutline,
   refreshOutline,
+  personCircleOutline,
 } from "ionicons/icons";
 
 import { useCallback, useEffect, useState } from "react";
+import { Geolocation, Position } from "@capacitor/geolocation";
 
 import Header from "../../header/Header";
 import "./PeoplePage.scss";
-import { Person } from "../../common/person.model";
+
 import { getNearbyPeople, updateLocation } from "../../service/userService";
 import { useAuth } from "../../contexts/AuthContext";
+import { Persons } from "../../common/person.model";
+import axiosClient from "../../service/axiosClient";
 
-type FilterType = "nearby" | "online" | "new" | "popular";
+type FilterType = "all" | "nearby" | "online" | "new";
 
 const FILTERS = [
+  { id: "all" as FilterType, label: "Everyone" },
   {
     id: "nearby" as FilterType,
     label: "Nearby",
@@ -43,17 +48,13 @@ const FILTERS = [
     id: "new" as FilterType,
     label: "New here",
   },
-  {
-    id: "popular" as FilterType,
-    label: "Popular",
-  },
 ];
 
 const PeoplePage: React.FC = () => {
   const { user } = useAuth();
-  const [people, setPeople] = useState<Person[]>([]);
+  const [people, setPeople] = useState<Persons[]>([]);
   const router = useIonRouter();
-  const [activeFilter, setActiveFilter] = useState<FilterType>("nearby");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   const [loading, setLoading] = useState(true);
 
@@ -63,25 +64,27 @@ const PeoplePage: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState("");
 
-  /*
-   * ----------------------------------------------------
-   * GET CURRENT LOCATION
-   * ----------------------------------------------------
-   */
+  const getCurrentLocation = async (): Promise<Position> => {
+    const permission = await Geolocation.checkPermissions();
 
-  const getCurrentLocation = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported by this device."));
+    if (
+      permission.location !== "granted" &&
+      permission.coarseLocation !== "granted"
+    ) {
+      const requested = await Geolocation.requestPermissions();
 
-        return;
+      if (
+        requested.location !== "granted" &&
+        requested.coarseLocation !== "granted"
+      ) {
+        throw new Error("Location permission was denied.");
       }
+    }
 
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      });
+    return Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000,
     });
   };
 
@@ -125,6 +128,7 @@ const PeoplePage: React.FC = () => {
   const fetchNearbyPeople = async () => {
     try {
       setLoading(true);
+      setPeople([]);
 
       /*
        * Get GPS location
@@ -179,9 +183,24 @@ const PeoplePage: React.FC = () => {
    * ----------------------------------------------------
    */
 
-  useEffect(() => {
-    fetchNearbyPeople();
-  }, []);
+  const fetchPeople = async () => {
+    setLoading(true);
+    try { const response = await axiosClient.get<Persons[]>("/people/discover"); setPeople(response.data); }
+    catch { setToastMessage("Unable to load people. Please try again."); }
+    finally { setLoading(false); }
+  };
+  useIonViewWillEnter(() => {
+    // Ionic keeps tabs mounted. Clear cached cards and reload after safety/friendship changes.
+    setPeople([]);
+    if (activeFilter === "nearby") {
+      setLoading(true);
+      setPeople([]);
+      void getNearbyPeople(user!.username)
+        .then(response => setPeople(response.data))
+        .catch(() => setToastMessage("Unable to load nearby people. Please try again."))
+        .finally(() => setLoading(false));
+    } else void fetchPeople();
+  }, [activeFilter, user?.username]);
 
   /*
    * ----------------------------------------------------
@@ -192,12 +211,12 @@ const PeoplePage: React.FC = () => {
   const getFilteredPeople = () => {
     switch (activeFilter) {
       case "online":
-        return people.filter((person) => person.online);
+        return people.filter((Persons) => Persons.online);
 
       case "new":
-        return people.filter((person) => person.meta === "New here");
+        return people.filter((Persons) => Persons.meta === "New here");
 
-      case "popular":
+      case "all":
         /*
          * For now return all.
          *
@@ -209,7 +228,7 @@ const PeoplePage: React.FC = () => {
 
       case "nearby":
       default:
-        return [...people].sort((a, b) => a.distanceKm - b.distanceKm);
+        return [...people].sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     }
   };
 
@@ -222,7 +241,7 @@ const PeoplePage: React.FC = () => {
    */
 
   const handleRefresh = async (event: CustomEvent) => {
-    await fetchNearbyPeople();
+    if (activeFilter === "nearby") await fetchNearbyPeople(); else await fetchPeople();
 
     event.detail.complete();
   };
@@ -233,15 +252,15 @@ const PeoplePage: React.FC = () => {
    * ----------------------------------------------------
    */
 
-  const handleChat = (person: Person) => {
-    console.log("Start chat with:", person);
+  const handleChat = (Persons: Persons) => {
+    router.push(`/app/person/${Persons.publicId}`);
 
     /*
      * Later:
      *
      * history.push("/app/chatPage", {
-     *   receiverId: person.id,
-     *   username: person.name
+     *   receiverId: Persons.id,
+     *   username: Persons.name
      * });
      */
   };
@@ -252,10 +271,10 @@ const PeoplePage: React.FC = () => {
    * ----------------------------------------------------
    */
 
-  const handleProfileClick = (person: Person) => {
-    console.log("Open profile:", person);
+  const handleProfileClick = (Persons: Persons) => {
+    console.log("Open profile:", Persons.publicId);
 
-    router.push(`/app/person/${person.id}`);
+    router.push(`/app/person/${Persons.publicId}`);
   };
 
   /*
@@ -304,19 +323,22 @@ const PeoplePage: React.FC = () => {
               className={`filter-chip ${
                 activeFilter === filter.id ? "filter-chip--active" : ""
               }`}
-              onClick={() => setActiveFilter(filter.id)}
+              onClick={() => { setActiveFilter(filter.id); if (filter.id === "nearby") void fetchNearbyPeople(); else if (activeFilter === "nearby") void fetchPeople(); }}
             >
               {filter.label}
 
               {filter.id === "online" && (
                 <span className="filter-chip-count">
-                  {people.filter((person) => person.online).length}
+                  {people.filter((Persons) => Persons.online).length}
                 </span>
               )}
 
               {filter.id === "new" && (
                 <span className="filter-chip-count">
-                  {people.filter((person) => person.meta === "New here").length}
+                  {
+                    people.filter((Persons) => Persons.meta === "New here")
+                      .length
+                  }
                 </span>
               )}
             </button>
@@ -370,17 +392,17 @@ const PeoplePage: React.FC = () => {
         {!loading && filteredPeople.length > 0 && (
           <IonGrid className="people-grid">
             <IonRow>
-              {filteredPeople.map((person) => (
-                <IonCol size="6" key={person.id}>
+              {filteredPeople.map((Persons) => (
+                <IonCol size="6" key={Persons.publicId}>
                   <div
                     className="people-card"
-                    onClick={() => handleProfileClick(person)}
+                    onClick={() => handleProfileClick(Persons)}
                   >
                     {/* PROFILE IMAGE */}
 
                     <div className="people-card-avatar">
-                      {person.profilePhoto ? (
-                        <img src={person.profilePhoto} alt={person.name} />
+                      {Persons.profilePhoto ? (
+                        <img src={Persons.profilePhoto} alt={Persons.name} />
                       ) : (
                         <IonIcon icon={personCircleOutline} />
                       )}
@@ -388,7 +410,7 @@ const PeoplePage: React.FC = () => {
 
                     {/* ONLINE */}
 
-                    {person.online && (
+                    {Persons.online && (
                       <span
                         className="people-card-online-dot"
                         aria-hidden="true"
@@ -399,11 +421,11 @@ const PeoplePage: React.FC = () => {
 
                     <button
                       className="people-card-wave"
-                      aria-label={`Message ${person.name}`}
+                      aria-label={`Message ${Persons.name}`}
                       onClick={(event) => {
                         event.stopPropagation();
 
-                        handleChat(person);
+                        handleChat(Persons);
                       }}
                     >
                       <IonIcon icon={chatbubbleEllipsesOutline} />
@@ -414,10 +436,10 @@ const PeoplePage: React.FC = () => {
                     <div className="people-card-info">
                       <div className="people-card-name-row">
                         <span className="people-card-name">
-                          {person.name}, {person.age}
+                          {Persons.name}, {Persons.age}
                         </span>
 
-                        {person.verified && (
+                        {Persons.verified && (
                           <IonIcon
                             icon={checkmarkCircle}
                             className="people-card-verified"
@@ -426,13 +448,13 @@ const PeoplePage: React.FC = () => {
                       </div>
 
                       <span className="people-card-meta">
-                        {person.online
+                        {Persons.online
                           ? "Active now"
-                          : person.meta || "Offline"}
+                          : Persons.meta || "Offline"}
                       </span>
 
                       <span className="people-card-distance">
-                        📍 {person.distanceKm.toFixed(1)} km away
+                        {Persons.distanceKm != null ? `📍 ${Persons.distanceKm.toFixed(1)} km away` : "Discover & connect"}
                       </span>
                     </div>
                   </div>

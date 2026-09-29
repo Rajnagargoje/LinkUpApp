@@ -1,0 +1,26 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10%" y1="0%" x2="95%" y2="100%">
+      <stop offset="0%" stop-color="#667eea" />
+      <stop offset="100%" stop-color="#764ba2" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)" />
+  <rect width="1024" height="1024" fill="url(#glow)" />
+
+  <!-- chat bubble glyph -->
+  <path
+    d="M512 232c-159 0-288 111-288 248 0 78 42 148 108 194 -6 34-22 64-46 88 -6 6-2 16 7 16 48-2 94-19 132-48 27 7 57 10 87 10 159 0 288-111 288-248S671 232 512 232Z"
+    fill="#ffffff"
+  />
+
+  <!-- three dots (typing indicator) -->
+  <circle cx="420" cy="480" r="34" fill="#764ba2" />
+  <circle cx="512" cy="480" r="34" fill="#764ba2" />
+  <circle cx="604" cy="480" r="34" fill="#764ba2" />
+</svg>

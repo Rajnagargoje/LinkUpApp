@@ -11,7 +11,13 @@
 // instead of hardcoding localhost. Also note: this won't resolve from a
 // real device/emulator — you'll need your machine's LAN IP (or 10.0.2.2
 // for the Android emulator) once you're off the browser.
-export const API_HOST = "http://localhost:8081";
+
+export const API_HOST =
+  import.meta.env.VITE_API_HOST ||
+  "http://linkup-api-prod.eba-wckd2kki.ap-south-1.elasticbeanstalk.com".replace(
+    /\/$/,
+    "",
+  );
 
 export const API_BASE_URL = `${API_HOST}/api`;
 
@@ -21,17 +27,68 @@ export const WS_ENDPOINT = `${API_HOST}/chat`;
 export const ENDPOINTS = {
   register: "/user/register",
   login: "/user/login",
-  checkUsername: "/user/check-username", // GET ?username=... — public
-  me: "/user/me", // GET current user profile
-  updateProfile: "/user/me", // PATCH — onboarding + later profile edits
-  logout: "/user/logout", // POST, best-effort (JWT is stateless client-side)
-  deleteAccount: "/user/me", // DELETE
-  updateStatus: "/user/status", // PATCH ?status=ONLINE|OFFLINE|BUSY — query param, NOT a body
-  photos: "/user/me/photos", // POST (multipart) to add, DELETE ?url=... to remove
-  sendEmailCode: "/auth/email/send-code", // POST, no body
-  verifyEmailCode: "/auth/email/verify-code", // POST { code }
+  checkUsername: "/user/check-username",
+  me: "/user/me",
+  updateProfile: "/user/me",
+  logout: "/user/logout",
+  deleteAccount: "/user/me",
+  updateStatus: "/user/status",
+  photos: "/user/me/photos",
+
+  sendEmailCode: "/auth/email/send-code",
+  verifyEmailCode: "/auth/email/verify-code",
+
   updateLocation: (username: string) => `/users/${username}/location`,
+
   nearbyPeople: (username: string) => `/people/${username}/nearby`,
+
+  getPersonProfile: (username: string) => `/people/${username}`,
+
+  // -----------------------------
+  // CONNECTIONS
+  // -----------------------------
+
+  sendConnectionRequest: (publicId: string) =>
+    `/connections/request/${publicId}`,
+
+  receivedRequests: "/connections/requests",
+
+  sentRequests: "/connections/sent",
+
+  acceptConnection: (connectionId: number) =>
+    `/connections/${connectionId}/accept`,
+
+  rejectConnection: (connectionId: number) =>
+    `/connections/${connectionId}/reject`,
+
+  friends: "/connections/friends",
+
+  connectionStatus: (publicId: string) => `/connections/status/${publicId}`,
+
+  unfriend: (publicId: string) => `/connections/${publicId}`,
+
+  // -----------------------------
+  // FRIEND CHAT
+  // -----------------------------
+
+  conversations: "/conversations",
+
+  directConversation: (friendPublicId: string) =>
+    `/conversations/direct/${friendPublicId}`,
+
+  conversationMessages: (conversationId: number) =>
+    `/conversations/${conversationId}/messages`,
+
+  markConversationRead: (conversationId: number) =>
+    `/conversations/${conversationId}/read`,
+
+  message: (messageId: number) => `/conversations/messages/${messageId}`,
+
+  markMessageDelivered: (messageId: number) =>
+    `/conversations/messages/${messageId}/delivered`,
+
+  markMessageRead: (messageId: number) =>
+    `/conversations/messages/${messageId}/read`,
 };
 
 // STOMP destinations used by socketService. Adjust to match your
@@ -40,6 +97,8 @@ export const STOMP = {
   presenceTopic: "/topic/presence",
   personalQueue: (username: string) => `/user/${username}/queue/messages`,
   sendDirectMessage: "/app/chat.send",
+  friendConversationQueue: (conversationId: number) =>
+    `/user/queue/conversations/${conversationId}`,
   roomTopic: (roomId: string) => `/topic/room/${roomId}`,
   sendRoomMessage: (roomId: string) => `/app/sendMessage/${roomId}`,
 };
