@@ -37,7 +37,12 @@ interface OnboardingData {
   bio: string;
 }
 
-type PermissionStatus = "idle" | "requesting" | "granted" | "denied" | "unsupported";
+type PermissionStatus =
+  | "idle"
+  | "requesting"
+  | "granted"
+  | "denied"
+  | "unsupported";
 
 interface PermissionsState {
   location: PermissionStatus;
@@ -101,19 +106,36 @@ const INTEREST_OPTIONS = [
 const TOTAL_STEPS = 8;
 const BIO_MAX_LENGTH = 150;
 
-const OnboardingPage: React.FC = () => {
+const OnboardingPage: React.FC<{ editMode?: boolean }> = ({
+  editMode = false,
+}) => {
   const history = useHistory();
   const { user, refreshUser } = useAuth();
 
   const [step, setStep] = useState(0);
 
-  const [data, setData] = useState<OnboardingData>({
-    dob: "",
-    gender: "",
-    lookingFor: "",
-    interests: [],
-    bio: "",
-  });
+  const [data, setData] = useState<OnboardingData>(() => ({
+    dob: editMode ? (user?.dob ?? "") : "",
+    gender: editMode
+      ? (Object.keys(GENDER_TO_ENUM).find(
+          (key) => GENDER_TO_ENUM[key] === user?.gender,
+        ) ?? "")
+      : "",
+    lookingFor: editMode
+      ? (Object.keys(LOOKING_FOR_TO_ENUM).find(
+          (key) => LOOKING_FOR_TO_ENUM[key] === user?.lookingFor,
+        ) ?? "")
+      : "",
+    interests: editMode
+      ? (user?.interests ?? []).map(
+          (interest) =>
+            INTEREST_OPTIONS.find(
+              (option) => option.label === interest || option.id === interest,
+            )?.id ?? interest,
+        )
+      : [],
+    bio: editMode ? (user?.bio ?? "") : "",
+  }));
 
   const [permissions, setPermissions] = useState<PermissionsState>({
     location: "idle",
@@ -132,7 +154,10 @@ const OnboardingPage: React.FC = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
-  const update = <K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) => {
+  const update = <K extends keyof OnboardingData>(
+    key: K,
+    value: OnboardingData[K],
+  ) => {
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -270,19 +295,33 @@ const OnboardingPage: React.FC = () => {
 
   const isStepValid = useMemo(() => {
     switch (step) {
-      case 0: return isAdult(data.dob);
-      case 1: return Boolean(data.gender);
-      case 2: return Boolean(data.lookingFor);
-      case 3: return data.interests.length >= 3;
-      case 4: return true; // bio is optional
-      case 5: return true; // photos are optional
-      case 6: return true; // permissions are optional
-      default: return true;
+      case 0:
+        return isAdult(data.dob);
+      case 1:
+        return Boolean(data.gender);
+      case 2:
+        return Boolean(data.lookingFor);
+      case 3:
+        return data.interests.length >= 3;
+      case 4:
+        return true; // bio is optional
+      case 5:
+        return true; // photos are optional
+      case 6:
+        return true; // permissions are optional
+      default:
+        return true;
     }
   }, [step, data]);
 
   const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
-  const goBack = () => setStep((s) => Math.max(s - 1, 0));
+  const goBack = () => {
+    if (editMode && step === 0) {
+      history.replace("/app/account");
+      return;
+    }
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
   const finishOnboarding = async () => {
     setSubmitting(true);
@@ -291,11 +330,11 @@ const OnboardingPage: React.FC = () => {
         dob: data.dob.slice(0, 10), // IonDatetime returns a full ISO timestamp; backend's LocalDate wants just yyyy-MM-dd
         gender: GENDER_TO_ENUM[data.gender],
         lookingFor: LOOKING_FOR_TO_ENUM[data.lookingFor],
-        bio: data.bio || undefined,
+        bio: editMode ? data.bio : data.bio || undefined,
         // Send labels, not raw ids — nicer to display anywhere this list
         // shows up later (e.g. "Coffee" instead of "coffee").
         interests: data.interests.map(
-          (id) => INTEREST_OPTIONS.find((i) => i.id === id)?.label ?? id
+          (id) => INTEREST_OPTIONS.find((i) => i.id === id)?.label ?? id,
         ),
         // photos/profilePhoto are already saved server-side by each
         // upload in the Photos step — NOT re-sent here, since PATCH /me
@@ -305,19 +344,26 @@ const OnboardingPage: React.FC = () => {
 
       if (coords && user?.username) {
         try {
-          await userService.updateLocation(user.username, coords.latitude, coords.longitude);
+          await userService.updateLocation(
+            user.username,
+            coords.latitude,
+            coords.longitude,
+          );
         } catch {
           // Non-critical — they can enable location again later in Settings.
-          toast.error("Couldn't save your location, but your profile is saved.");
+          toast.error(
+            "Couldn't save your location, but your profile is saved.",
+          );
         }
       }
 
       await refreshUser(); // picks up onboardingCompleted: true so ProtectedRoute lets them through
-      toast.success("You're all set!");
-      history.replace("/app/home");
+      toast.success(editMode ? "Profile updated" : "You're all set!");
+      history.replace(editMode ? "/app/account" : "/app/home");
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Couldn't save your profile. Please try again."
+        err?.response?.data?.message ||
+          "Couldn't save your profile. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -344,7 +390,9 @@ const OnboardingPage: React.FC = () => {
               value={data.dob || undefined}
               max={new Date().toISOString()}
               onIonChange={(e) => {
-                const val = Array.isArray(e.detail.value) ? e.detail.value[0] : e.detail.value;
+                const val = Array.isArray(e.detail.value)
+                  ? e.detail.value[0]
+                  : e.detail.value;
                 update("dob", val ?? "");
               }}
             />
@@ -365,14 +413,14 @@ const OnboardingPage: React.FC = () => {
                 <button
                   key={option}
                   className={`onboarding-option-row ${
-                    data.gender === option ? "onboarding-option-row--selected" : ""
+                    data.gender === option
+                      ? "onboarding-option-row--selected"
+                      : ""
                   }`}
                   onClick={() => update("gender", option)}
                 >
                   <span>{option}</span>
-                  {data.gender === option && (
-                    <IonIcon icon={checkmarkCircle} />
-                  )}
+                  {data.gender === option && <IonIcon icon={checkmarkCircle} />}
                 </button>
               ))}
             </div>
@@ -390,11 +438,15 @@ const OnboardingPage: React.FC = () => {
                 <button
                   key={option.id}
                   className={`onboarding-big-chip ${
-                    data.lookingFor === option.id ? "onboarding-big-chip--selected" : ""
+                    data.lookingFor === option.id
+                      ? "onboarding-big-chip--selected"
+                      : ""
                   }`}
                   onClick={() => update("lookingFor", option.id)}
                 >
-                  <span className="onboarding-big-chip-emoji">{option.emoji}</span>
+                  <span className="onboarding-big-chip-emoji">
+                    {option.emoji}
+                  </span>
                   {option.label}
                 </button>
               ))}
@@ -457,7 +509,9 @@ const OnboardingPage: React.FC = () => {
                 <div className="onboarding-photo-tile" key={url}>
                   <img src={url} alt="" />
                   {idx === 0 && (
-                    <span className="onboarding-photo-primary-badge">Profile</span>
+                    <span className="onboarding-photo-primary-badge">
+                      Profile
+                    </span>
                   )}
                   <button
                     className="onboarding-photo-remove"
@@ -538,8 +592,16 @@ const OnboardingPage: React.FC = () => {
             <div className="onboarding-finish-check">
               <IonIcon icon={checkmark} />
             </div>
-            <h1>You're all set{user?.username ? `, ${user.username}` : ""}!</h1>
-            <p>Welcome to LinkUp — time to make some connections.</p>
+            <h1>
+              {editMode
+                ? "Save your changes"
+                : `You're all set${user?.username ? `, ${user.username}` : ""}!`}
+            </h1>
+            <p>
+              {editMode
+                ? "Save to update your profile."
+                : "Welcome to LinkUp — time to make some connections."}
+            </p>
           </div>
         );
 
@@ -550,10 +612,14 @@ const OnboardingPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent fullscreen scrollY={step !== 7} className="onboarding-content">
+      <IonContent
+        fullscreen
+        scrollY={step !== 7}
+        className="onboarding-content"
+      >
         <div className="onboarding-topbar">
           <button
-            className={`onboarding-back-btn ${step === 0 ? "onboarding-back-btn--hidden" : ""}`}
+            className={`onboarding-back-btn ${step === 0 && !editMode ? "onboarding-back-btn--hidden" : ""}`}
             onClick={goBack}
             aria-label="Back"
           >
@@ -600,7 +666,13 @@ const OnboardingPage: React.FC = () => {
             disabled={submitting}
             onClick={finishOnboarding}
           >
-            {submitting ? <IonSpinner name="dots" /> : "Enter LinkUp"}
+            {submitting ? (
+              <IonSpinner name="dots" />
+            ) : editMode ? (
+              "Save changes"
+            ) : (
+              "Enter LinkUp"
+            )}
           </button>
         )}
       </div>

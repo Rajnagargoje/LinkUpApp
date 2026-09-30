@@ -11,8 +11,6 @@ import {
   IonPage,
   IonSpinner,
   IonToolbar,
-  useIonViewDidEnter,
-  useIonViewDidLeave,
 } from "@ionic/react";
 
 import {
@@ -250,20 +248,21 @@ const FriendChatPage: React.FC = () => {
   }, [conversationId, numericConversationId, sortMessages, user?.publicId]);
 
   useEffect(() => {
-    void loadConversation();
-    void loadMessages();
-  }, [loadConversation, loadMessages]);
+    const active =
+      location.pathname.replace(/\/+$/, "") ===
+      `/app/friend-chat/${conversationId}`;
 
-  useIonViewDidEnter(() => {
-    isPageActiveRef.current = true;
-  });
+    isPageActiveRef.current = active;
 
-  useIonViewDidLeave(() => {
-    isPageActiveRef.current = false;
-  });
-  useEffect(() => {
-    void loadConversation();
-  }, [loadConversation]);
+    if (active) {
+      void loadConversation();
+      void loadMessages();
+    }
+
+    return () => {
+      isPageActiveRef.current = false;
+    };
+  }, [location.pathname, conversationId, loadConversation, loadMessages]);
 
   /**
    * Ionic pages can stay mounted.
@@ -275,12 +274,6 @@ const FriendChatPage: React.FC = () => {
    * 3. reload messages
    * 4. update unread pointer
    */
-  useIonViewDidEnter(() => {
-    isPageActiveRef.current = true;
-
-    void loadConversation();
-    void loadMessages();
-  });
 
   /**
    * Important for unread count.
@@ -288,13 +281,11 @@ const FriendChatPage: React.FC = () => {
    * When user leaves this conversation we stop treating
    * incoming WebSocket messages as READ.
    */
-  useIonViewDidLeave(() => {
-    isPageActiveRef.current = false;
-  });
 
   useEffect(() => {
     const resume = () => {
-      if (isPageActiveRef.current && isNotificationAppActive()) void loadMessages();
+      if (isPageActiveRef.current && isNotificationAppActive())
+        void loadMessages();
     };
     document.addEventListener("visibilitychange", resume);
     window.addEventListener("linkup:app-resume", resume);
@@ -336,7 +327,10 @@ const FriendChatPage: React.FC = () => {
           /**
            * Ignore our own messages for READ handling.
            */
-          if (body.senderPublicId === user?.publicId) {
+          if (
+            body.senderPublicId === user?.publicId ||
+            body.status === "READ"
+          ) {
             return;
           }
 
@@ -447,10 +441,18 @@ const FriendChatPage: React.FC = () => {
       addOrReplaceMessage(message);
       setInput("");
       const conversations = await getMyConversations();
-      setConversation(conversations.find(item => item.conversationId === numericConversationId) ?? null);
+      setConversation(
+        conversations.find(
+          (item) => item.conversationId === numericConversationId,
+        ) ?? null,
+      );
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Message could not be sent.");
-    } finally { setSending(false); }
+      toast.error(
+        error.response?.data?.message || "Message could not be sent.",
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   /**
@@ -538,10 +540,27 @@ const FriendChatPage: React.FC = () => {
       {/* ================= MESSAGES ================= */}
 
       <IonContent ref={contentRef} className="friend-chat-content" fullscreen>
-        {conversation?.friends === false && <div className="ion-padding" role="status">
-          <p>{conversation.introductionsRemaining ?? 0} introduction messages remaining. Become friends to continue chatting.</p>
-          <IonButton onClick={() => { void sendConnectionRequest(conversation.friendPublicId).then(() => toast.success("Friend request sent")).catch((error) => toast.error(error.response?.data?.message || "Could not send request")); }}>Send friend request</IonButton>
-        </div>}
+        {conversation?.friends === false && (
+          <div className="ion-padding" role="status">
+            <p>
+              {conversation.introductionsRemaining ?? 0} introduction messages
+              remaining. Become friends to continue chatting.
+            </p>
+            <IonButton
+              onClick={() => {
+                void sendConnectionRequest(conversation.friendPublicId)
+                  .then(() => toast.success("Friend request sent"))
+                  .catch((error) =>
+                    toast.error(
+                      error.response?.data?.message || "Could not send request",
+                    ),
+                  );
+              }}
+            >
+              Send friend request
+            </IonButton>
+          </div>
+        )}
         {loading ? (
           <div className="friend-chat-loading">
             <IonSpinner name="crescent" />

@@ -49,31 +49,33 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <IonReactRouter><NotificationProvider>
-      <Switch>
-        <PublicRoute exact path="/">
-          <LoginPage />
-        </PublicRoute>
-        <PublicRoute exact path="/signup">
-          <SignUpPage />
-        </PublicRoute>
-        {/* Authenticated-only, no onboarding requirement either way —
+    <IonReactRouter>
+      <NotificationProvider>
+        <Switch>
+          <PublicRoute exact path="/">
+            <LoginPage />
+          </PublicRoute>
+          <PublicRoute exact path="/signup">
+            <SignUpPage />
+          </PublicRoute>
+          {/* Authenticated-only, no onboarding requirement either way —
             reachable right after register AND later from Settings. */}
-        <AuthOnlyRoute exact path="/verify-email">
-          <VerifyEmailPage />
-        </AuthOnlyRoute>
-        {/* Authenticated + NOT yet onboarded only (see OnboardingRoute). */}
-        <OnboardingRoute exact path="/onboarding">
-          <OnboardingPage />
-        </OnboardingRoute>
-        <ProtectedRoute path="/app">
-          <AppTabs />
-        </ProtectedRoute>
-        <Route>
-          <Redirect to="/" />
-        </Route>
-      </Switch>
-    </NotificationProvider></IonReactRouter>
+          <AuthOnlyRoute exact path="/verify-email">
+            <VerifyEmailPage />
+          </AuthOnlyRoute>
+          {/* Authenticated + NOT yet onboarded only (see OnboardingRoute). */}
+          <OnboardingRoute exact path="/onboarding">
+            <OnboardingPage />
+          </OnboardingRoute>
+          <ProtectedRoute path="/app">
+            <AppTabs />
+          </ProtectedRoute>
+          <Route>
+            <Redirect to="/" />
+          </Route>
+        </Switch>
+      </NotificationProvider>
+    </IonReactRouter>
   );
 };
 

@@ -19,8 +19,7 @@ import HomePage from "./pages/homePage/HomePage";
 
 import ChatPage from "./pages/roomchat/RoomChatPage";
 import OneTwoOneChat from "./pages/randomchat/OneTwoOneChat";
-
-import "./AppTabs.scss";
+import "./Apptabs.scss";
 import SettingsPage from "./pages/profile/SettingsPage";
 import ProfilePage from "./pages/profile/Me";
 import PeoplePage from "./pages/people/PeoplePage";
@@ -39,6 +38,7 @@ import { useNotifications } from "./contexts/NotificationContext";
 import { badgeCount } from "./service/notificationService";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import NotificationSettingsPage from "./pages/notifications/NotificationSettingsPage";
+import OnboardingPage from "./pages/onboarding/OnboardingPage";
 
 const AppTabs: React.FC = () => {
   const { counts } = useNotifications();
@@ -67,6 +67,9 @@ const AppTabs: React.FC = () => {
           <Route exact path="/app/account">
             <ProfilePage />
           </Route>
+          <Route exact path="/app/account/edit">
+            <OnboardingPage editMode />
+          </Route>
 
           <Route exact path="/app">
             <Redirect to="/app/home" />
@@ -86,7 +89,11 @@ const AppTabs: React.FC = () => {
           >
             <IonIcon icon={mailOutline} />
             <IonLabel>Messages</IonLabel>
-            {counts.messages + counts.requests > 0 && <IonBadge color="danger">{badgeCount(counts.messages + counts.requests)}</IonBadge>}
+            {counts.messages + counts.requests > 0 && (
+              <IonBadge color="danger">
+                {badgeCount(counts.messages + counts.requests)}
+              </IonBadge>
+            )}
           </IonTabButton>
 
           <IonTabButton
@@ -109,8 +116,12 @@ const AppTabs: React.FC = () => {
         </IonTabBar>
       </IonTabs>
 
-      <Route exact path="/app/notifications"><NotificationsPage /></Route>
-      <Route exact path="/app/notifications/settings"><NotificationSettingsPage /></Route>
+      <Route exact path="/app/notifications">
+        <NotificationsPage />
+      </Route>
+      <Route exact path="/app/notifications/settings">
+        <NotificationSettingsPage />
+      </Route>
       {/* Chat page */}
       <Route exact path="/app/chatPage">
         <ChatPage />

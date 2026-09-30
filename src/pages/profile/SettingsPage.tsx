@@ -73,7 +73,7 @@ const SettingsPage: React.FC = () => {
       dismiss();
       toast.error(
         error?.response?.data?.message ||
-          "Unable to delete your account right now. Please try again."
+          "Unable to delete your account right now. Please try again.",
       );
     }
   };
@@ -120,10 +120,16 @@ const SettingsPage: React.FC = () => {
               lines="none"
               routerLink="/verify-email"
             >
-              <IonIcon slot="start" icon={mailOutline} className="settings-icon" />
+              <IonIcon
+                slot="start"
+                icon={mailOutline}
+                className="settings-icon"
+              />
               <IonLabel>
                 <h2>Verify your email</h2>
-                <p>You won't be able to reset your password until this is done</p>
+                <p>
+                  You won't be able to reset your password until this is done
+                </p>
               </IonLabel>
               <IonIcon
                 slot="end"
