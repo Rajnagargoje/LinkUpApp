@@ -1,4 +1,5 @@
 import {
+  IonAlert,
   IonAvatar,
   IonBadge,
   IonButton,
@@ -9,6 +10,7 @@ import {
   IonLabel,
   IonList,
   IonPage,
+  IonPopover,
   IonSearchbar,
   IonSegment,
   IonSegmentButton,
@@ -33,9 +35,12 @@ import Header from "../../header/Header";
 
 import {
   acceptConnectionRequest,
+  blockUser,
   getFriends,
   getReceivedRequests,
   rejectConnectionRequest,
+  reportUser,
+  unfriend,
 } from "../../service/connectionService";
 
 import {
@@ -49,17 +54,34 @@ import { ConversationResponse } from "../../common/chat.model";
 import "./FriendsPage.scss";
 
 type FriendsTab = "friends" | "requests";
+type FriendAction = "remove" | "block" | "report";
 
-import { useNotifications, isNotificationAppActive } from "../../contexts/NotificationContext";
-import { badgeCount, readRequestNotifications } from "../../service/notificationService";
+import {
+  useNotifications,
+  isNotificationAppActive,
+} from "../../contexts/NotificationContext";
+import {
+  badgeCount,
+  readRequestNotifications,
+} from "../../service/notificationService";
 
 const FriendsPage: React.FC = () => {
+  const friendActionLabels = {
+    remove: "Remove friend",
+    block: "Block",
+    report: "Report",
+  };
   const location = useLocation();
-  const { counts, revision, refresh: refreshNotifications } = useNotifications();
+  const {
+    counts,
+    revision,
+    refresh: refreshNotifications,
+  } = useNotifications();
   const seenRequests = useRef(new Set<number>());
   const history = useHistory();
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("tab") === "requests") setActiveTab("requests");
+    if (new URLSearchParams(location.search).get("tab") === "requests")
+      setActiveTab("requests");
   }, [location.search]);
 
   const [activeTab, setActiveTab] = useState<FriendsTab>("friends");
@@ -88,6 +110,99 @@ const FriendsPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const [chatLoadingId, setChatLoadingId] = useState<number | null>(null);
+  const friendPopover = useRef<HTMLIonPopoverElement>(null);
+  const friendActionBusy = useRef(false);
+
+  const [friendMenu, setFriendMenu] = useState<{
+    friend: ConnectionResponse;
+    event: Event;
+  } | null>(null);
+
+  const [friendAction, setFriendAction] = useState<{
+    friend: ConnectionResponse;
+    action: FriendAction;
+  } | null>(null);
+
+  const friendActionInputs = useMemo(
+    () =>
+      friendAction?.action === "report"
+        ? [
+            {
+              name: "reason",
+              type: "textarea" as const,
+              placeholder: "Reason (required)",
+              attributes: { maxlength: 500 },
+            },
+          ]
+        : [],
+    [friendAction],
+  );
+
+  const selectFriendAction = async (action: FriendAction) => {
+    if (!friendMenu || friendActionBusy.current) return;
+
+    const friend = friendMenu.friend;
+    await friendPopover.current?.dismiss();
+    setFriendAction({ friend, action });
+  };
+
+  const submitFriendAction = async (reason?: string): Promise<boolean> => {
+    if (!friendAction || friendActionBusy.current) return false;
+
+    const { friend, action } = friendAction;
+    const text = reason?.trim() ?? "";
+
+    if (action === "report" && (!text || text.length > 500)) {
+      toast.error("Enter a report reason between 1 and 500 characters.");
+      return false;
+    }
+
+    friendActionBusy.current = true;
+    setActionLoading(friend.connectionId);
+
+    try {
+      if (action === "remove") {
+        await unfriend(friend.userId);
+      } else if (action === "block") {
+        await blockUser(friend.userId);
+      } else {
+        await reportUser(friend.userId, text);
+      }
+
+      if (action !== "report") {
+        setFriends((previous) =>
+          previous.filter((item) => item.userId !== friend.userId),
+        );
+
+        setConversations((previous) =>
+          action === "block"
+            ? previous.filter((item) => item.friendPublicId !== friend.userId)
+            : previous.map((item) =>
+                item.friendPublicId === friend.userId
+                  ? { ...item, friends: false }
+                  : item,
+              ),
+        );
+      }
+
+      toast.success(
+        action === "remove"
+          ? "Friend removed."
+          : action === "block"
+            ? "User blocked."
+            : "Report submitted.",
+      );
+
+      void refreshNotifications();
+      return true;
+    } catch {
+      toast.error("Could not complete the action. Please try again.");
+      return false;
+    } finally {
+      friendActionBusy.current = false;
+      setActionLoading(null);
+    }
+  };
 
   /**
    * Load accepted friends.
@@ -178,16 +293,28 @@ const FriendsPage: React.FC = () => {
    */
   useEffect(() => {
     if (location.pathname === "/app/friends") {
-      void loadRequests(); void loadFriends(); void loadConversations();
+      void loadRequests();
+      void loadFriends();
+      void loadConversations();
     }
   }, [revision, location.pathname]);
 
   useEffect(() => {
-    if (activeTab !== "requests" || location.pathname !== "/app/friends" || !isNotificationAppActive()) return;
-    const ids = requests.map(request => request.connectionId).filter(id => !seenRequests.current.has(id)).slice(0, 100);
+    if (
+      activeTab !== "requests" ||
+      location.pathname !== "/app/friends" ||
+      !isNotificationAppActive()
+    )
+      return;
+    const ids = requests
+      .map((request) => request.connectionId)
+      .filter((id) => !seenRequests.current.has(id))
+      .slice(0, 100);
     if (!ids.length) return;
-    ids.forEach(id => seenRequests.current.add(id));
-    void readRequestNotifications(ids).then(() => refreshNotifications()).catch(() => ids.forEach(id => seenRequests.current.delete(id)));
+    ids.forEach((id) => seenRequests.current.add(id));
+    void readRequestNotifications(ids)
+      .then(() => refreshNotifications())
+      .catch(() => ids.forEach((id) => seenRequests.current.delete(id)));
   }, [requests, activeTab, location.pathname, refreshNotifications]);
   const handleAccept = async (connectionId: number) => {
     try {
@@ -357,13 +484,24 @@ const FriendsPage: React.FC = () => {
           }
         >
           <IonSegmentButton value="friends">
-            <IonLabel>YOUR FRIENDS {counts.messages > 0 && <IonBadge color="danger">{badgeCount(counts.messages)}</IonBadge>}</IonLabel>
+            <IonLabel>
+              YOUR FRIENDS{" "}
+              {counts.messages > 0 && (
+                <IonBadge color="danger">
+                  {badgeCount(counts.messages)}
+                </IonBadge>
+              )}
+            </IonLabel>
           </IonSegmentButton>
 
           <IonSegmentButton value="requests">
             <IonLabel>
               FRIEND REQUESTS
-              {counts.requests > 0 && <IonBadge color="danger">{badgeCount(counts.requests)}</IonBadge>}
+              {counts.requests > 0 && (
+                <IonBadge color="danger">
+                  {badgeCount(counts.requests)}
+                </IonBadge>
+              )}
             </IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -458,7 +596,9 @@ const FriendsPage: React.FC = () => {
                         <IonButtons slot="end">
                           <IonButton
                             fill="clear"
-                            disabled={chatLoadingId === friend.connectionId}
+                            disabled={
+                              chatLoadingId !== null || actionLoading !== null
+                            }
                             onClick={(event) => {
                               event.stopPropagation();
 
@@ -474,12 +614,26 @@ const FriendsPage: React.FC = () => {
 
                           <IonButton
                             fill="clear"
-                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`Options for ${friend.username}`}
+                            disabled={
+                              actionLoading !== null || chatLoadingId !== null
+                            }
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setFriendMenu({
+                                friend,
+                                event: event.nativeEvent,
+                              });
+                            }}
                           >
-                            <IonIcon
-                              slot="icon-only"
-                              icon={ellipsisVerticalOutline}
-                            />
+                            {actionLoading === friend.connectionId ? (
+                              <IonSpinner name="crescent" />
+                            ) : (
+                              <IonIcon
+                                slot="icon-only"
+                                icon={ellipsisVerticalOutline}
+                              />
+                            )}
                           </IonButton>
                         </IonButtons>
                       </IonItem>
@@ -493,10 +647,28 @@ const FriendsPage: React.FC = () => {
 
             {activeTab === "requests" && (
               <IonList>
-                {conversations.filter(chat => chat.friends === false).map(chat => <IonItem key={`intro-${chat.conversationId}`} button onClick={() => history.push(`/app/friend-chat/${chat.conversationId}`, { conversation: chat })}>
-                  <IonLabel><h2>{chat.friendUsername}</h2><p>{chat.lastMessage || "Introduction conversation"}</p></IonLabel>
-                  {chat.unreadCount > 0 && <IonBadge>{chat.unreadCount}</IonBadge>}
-                </IonItem>)}
+                {conversations
+                  .filter((chat) => chat.friends === false)
+                  .map((chat) => (
+                    <IonItem
+                      key={`intro-${chat.conversationId}`}
+                      button
+                      onClick={() =>
+                        history.push(
+                          `/app/friend-chat/${chat.conversationId}`,
+                          { conversation: chat },
+                        )
+                      }
+                    >
+                      <IonLabel>
+                        <h2>{chat.friendUsername}</h2>
+                        <p>{chat.lastMessage || "Introduction conversation"}</p>
+                      </IonLabel>
+                      {chat.unreadCount > 0 && (
+                        <IonBadge>{chat.unreadCount}</IonBadge>
+                      )}
+                    </IonItem>
+                  ))}
                 {filteredRequests.length === 0 ? (
                   <div className="friends-empty">
                     <IonIcon icon={personCircleSharp} />
@@ -560,6 +732,57 @@ const FriendsPage: React.FC = () => {
           </>
         )}
       </IonContent>
+      <IonPopover
+        ref={friendPopover}
+        isOpen={friendMenu !== null}
+        event={friendMenu?.event}
+        onDidDismiss={() => setFriendMenu(null)}
+      >
+        <IonList lines="none">
+          {(["remove", "block", "report"] as const).map((action) => (
+            <IonItem
+              key={action}
+              button
+              detail={false}
+              onClick={() => {
+                void selectFriendAction(action);
+              }}
+            >
+              <IonLabel>{friendActionLabels[action]}</IonLabel>
+            </IonItem>
+          ))}
+        </IonList>
+      </IonPopover>
+
+      <IonAlert
+        isOpen={friendAction !== null}
+        header={friendAction ? friendActionLabels[friendAction.action] : ""}
+        subHeader={friendAction?.friend.username}
+        message={
+          friendAction?.action === "report"
+            ? "Describe why you are reporting this person."
+            : friendAction?.action === "block"
+              ? "This removes the friendship and prevents private messages."
+              : "Remove this person from your friends?"
+        }
+        backdropDismiss={!friendActionBusy.current}
+        onDidDismiss={() => setFriendAction(null)}
+        inputs={friendActionInputs}
+        buttons={[
+          {
+            text: "Cancel",
+            role: "cancel",
+            handler: () => !friendActionBusy.current,
+          },
+          {
+            text: friendAction
+              ? friendActionLabels[friendAction.action]
+              : "Confirm",
+            handler: (data: { reason?: string }) =>
+              submitFriendAction(data?.reason),
+          },
+        ]}
+      />
     </IonPage>
   );
 };

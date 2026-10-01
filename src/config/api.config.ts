@@ -63,7 +63,8 @@ export const ENDPOINTS = {
   connectionStatus: (publicId: string) => `/connections/status/${publicId}`,
 
   unfriend: (publicId: string) => `/connections/${publicId}`,
-
+ blockUser: (publicId: string) => `/connections/${publicId}/block`,
+ reportUser: (publicId: string) => `/connections/${publicId}/report`,
   // -----------------------------
   // FRIEND CHAT
   // -----------------------------
