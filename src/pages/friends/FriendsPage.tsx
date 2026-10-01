@@ -1,790 +1,251 @@
 import {
-  IonAlert,
-  IonAvatar,
-  IonBadge,
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonPopover,
-  IonSearchbar,
-  IonSegment,
-  IonSegmentButton,
-  IonSpinner,
-  IonText,
-  useIonViewWillEnter,
+  IonActionSheet, IonAvatar, IonBadge, IonButton, IonButtons, IonContent,
+  IonIcon, IonItem, IonLabel, IonList, IonPage, IonSearchbar, IonSegment,
+  IonSegmentButton, IonSpinner,
 } from "@ionic/react";
-
-import {
-  chatboxOutline,
-  personCircleSharp,
-  checkmarkOutline,
-  closeOutline,
-  ellipsisVerticalOutline,
-} from "ionicons/icons";
-
-import { useEffect, useRef, useMemo, useState } from "react";
+import { checkmarkOutline, closeOutline, notificationsOffOutline, personCircleSharp } from "ionicons/icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useHistory, useLocation } from "react-router";
 import toast from "react-hot-toast";
-
 import Header from "../../header/Header";
-
 import {
-  acceptConnectionRequest,
-  blockUser,
-  getFriends,
-  getReceivedRequests,
-  rejectConnectionRequest,
-  reportUser,
-  unfriend,
+  acceptConnectionRequest, getFriends, getReceivedRequests, rejectConnectionRequest,
 } from "../../service/connectionService";
-
-import {
-  getMyConversations,
-  getOrCreateDirectConversation,
-} from "../../service/chatService";
-
+import { getMyConversations, getOrCreateDirectConversation, setConversationMuted } from "../../service/chatService";
 import { ConnectionResponse } from "../../common/connection.model";
 import { ConversationResponse } from "../../common/chat.model";
-
+import { useNotifications, isNotificationAppActive } from "../../contexts/NotificationContext";
+import { badgeCount, readRequestNotifications } from "../../service/notificationService";
+import { CHAT_LIST_CHANGED, chatTimestamp, formatChatListTime, notifyChatListChanged } from "../../utils/chatPresentation";
 import "./FriendsPage.scss";
 
 type FriendsTab = "friends" | "requests";
-type FriendAction = "remove" | "block" | "report";
-
-import {
-  useNotifications,
-  isNotificationAppActive,
-} from "../../contexts/NotificationContext";
-import {
-  badgeCount,
-  readRequestNotifications,
-} from "../../service/notificationService";
 
 const FriendsPage: React.FC = () => {
-  const friendActionLabels = {
-    remove: "Remove friend",
-    block: "Block",
-    report: "Report",
-  };
-  const location = useLocation();
-  const {
-    counts,
-    revision,
-    refresh: refreshNotifications,
-  } = useNotifications();
-  const seenRequests = useRef(new Set<number>());
   const history = useHistory();
-  useEffect(() => {
-    if (new URLSearchParams(location.search).get("tab") === "requests")
-      setActiveTab("requests");
-  }, [location.search]);
-
+  const location = useLocation();
+  const { counts, revision, refresh: refreshNotifications } = useNotifications();
   const [activeTab, setActiveTab] = useState<FriendsTab>("friends");
-
   const [friends, setFriends] = useState<ConnectionResponse[]>([]);
   const [requests, setRequests] = useState<ConnectionResponse[]>([]);
-
-  /**
-   * Conversations are required for unread counts.
-   *
-   * Each conversation contains:
-   *
-   * friendPublicId
-   * unreadCount
-   * lastMessage
-   * etc.
-   */
-  const [conversations, setConversations] = useState<ConversationResponse[]>(
-    [],
-  );
-
+  const [conversations, setConversations] = useState<ConversationResponse[]>([]);
   const [searchText, setSearchText] = useState("");
-
-  const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-
   const [chatLoadingId, setChatLoadingId] = useState<number | null>(null);
-  const friendPopover = useRef<HTMLIonPopoverElement>(null);
-  const friendActionBusy = useRef(false);
+  const [muteLoadingId, setMuteLoadingId] = useState<number | null>(null);
+  const [muteMenu, setMuteMenu] = useState<ConnectionResponse | null>(null);
+  const loaded = useRef(false);
+  const loadInFlight = useRef(false);
+  const reloadPending = useRef(false);
+  const mutationVersion = useRef(0);
+  const pageActive = useRef(false);
+  pageActive.current = location.pathname === "/app/friends";
+  const seenRequests = useRef(new Set<number>());
+  const openingChat = useRef(false);
+  const actionBusy = useRef(false);
+  const suppressClick = useRef(false);
+  const press = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
 
-  const [friendMenu, setFriendMenu] = useState<{
-    friend: ConnectionResponse;
-    event: Event;
-  } | null>(null);
-
-  const [friendAction, setFriendAction] = useState<{
-    friend: ConnectionResponse;
-    action: FriendAction;
-  } | null>(null);
-
-  const friendActionInputs = useMemo(
-    () =>
-      friendAction?.action === "report"
-        ? [
-            {
-              name: "reason",
-              type: "textarea" as const,
-              placeholder: "Reason (required)",
-              attributes: { maxlength: 500 },
-            },
-          ]
-        : [],
-    [friendAction],
-  );
-
-  const selectFriendAction = async (action: FriendAction) => {
-    if (!friendMenu || friendActionBusy.current) return;
-
-    const friend = friendMenu.friend;
-    await friendPopover.current?.dismiss();
-    setFriendAction({ friend, action });
-  };
-
-  const submitFriendAction = async (reason?: string): Promise<boolean> => {
-    if (!friendAction || friendActionBusy.current) return false;
-
-    const { friend, action } = friendAction;
-    const text = reason?.trim() ?? "";
-
-    if (action === "report" && (!text || text.length > 500)) {
-      toast.error("Enter a report reason between 1 and 500 characters.");
-      return false;
-    }
-
-    friendActionBusy.current = true;
-    setActionLoading(friend.connectionId);
-
+  const loadData = useCallback(async () => {
+    if (!pageActive.current) return;
+    if (loadInFlight.current) { reloadPending.current = true; return; }
+    loadInFlight.current = true;
+    const version = mutationVersion.current;
+    if (!loaded.current) setLoading(true);
     try {
-      if (action === "remove") {
-        await unfriend(friend.userId);
-      } else if (action === "block") {
-        await blockUser(friend.userId);
-      } else {
-        await reportUser(friend.userId, text);
-      }
-
-      if (action !== "report") {
-        setFriends((previous) =>
-          previous.filter((item) => item.userId !== friend.userId),
-        );
-
-        setConversations((previous) =>
-          action === "block"
-            ? previous.filter((item) => item.friendPublicId !== friend.userId)
-            : previous.map((item) =>
-                item.friendPublicId === friend.userId
-                  ? { ...item, friends: false }
-                  : item,
-              ),
-        );
-      }
-
-      toast.success(
-        action === "remove"
-          ? "Friend removed."
-          : action === "block"
-            ? "User blocked."
-            : "Report submitted.",
-      );
-
-      void refreshNotifications();
-      return true;
+      const [friendsResult, requestsResult, chats] = await Promise.all([
+        getFriends(), getReceivedRequests(), getMyConversations(),
+      ]);
+      if (!pageActive.current) return;
+      if (version !== mutationVersion.current) { reloadPending.current = true; return; }
+      setFriends(friendsResult.data.data ?? []);
+      setRequests(requestsResult.data.data ?? []);
+      setConversations(chats ?? []);
+      loaded.current = true;
+      setLoadError(false);
     } catch {
-      toast.error("Could not complete the action. Please try again.");
-      return false;
+      if (!loaded.current) setLoadError(true);
     } finally {
-      friendActionBusy.current = false;
-      setActionLoading(null);
-    }
-  };
-
-  /**
-   * Load accepted friends.
-   */
-  const loadFriends = async () => {
-    try {
-      const response = await getFriends();
-
-      setFriends(response.data.data ?? []);
-    } catch (error) {
-      console.error("Failed to load friends:", error);
-    }
-  };
-
-  /**
-   * Load received friend requests.
-   */
-  const loadRequests = async () => {
-    try {
-      const response = await getReceivedRequests();
-
-      setRequests(response.data.data ?? []);
-    } catch (error) {
-      console.error("Failed to load friend requests:", error);
-    }
-  };
-
-  /**
-   * Load conversations.
-   *
-   * This is where unreadCount comes from.
-   */
-  const loadConversations = async () => {
-    try {
-      const data = await getMyConversations();
-
-      setConversations(data ?? []);
-    } catch (error) {
-      console.error("Failed to load conversations:", error);
-    }
-  };
-
-  /**
-   * Load complete page data.
-   */
-  const loadData = async () => {
-    try {
-      setLoading(true);
-
-      await Promise.all([loadFriends(), loadRequests(), loadConversations()]);
-    } finally {
+      loadInFlight.current = false;
       setLoading(false);
+      if (reloadPending.current) { reloadPending.current = false; void loadData(); }
     }
-  };
-
-  /**
-   * Important for unread counts.
-   *
-   * Ionic pages often stay mounted when navigating.
-   *
-   * Therefore normal useEffect([]) is not enough.
-   *
-   * This runs:
-   *
-   * - first time page opens
-   * - when returning from FriendChatPage
-   *
-   * Example:
-   *
-   * Rahul unread = 3
-   *      ↓
-   * open Rahul chat
-   *      ↓
-   * messages marked read
-   *      ↓
-   * press back
-   *      ↓
-   * this executes again
-   *      ↓
-   * unread = 0
-   */
-  useIonViewWillEnter(() => {
-    void loadData();
-  });
-
-  /**
-   * Accept friend request.
-   */
-  useEffect(() => {
-    if (location.pathname === "/app/friends") {
-      void loadRequests();
-      void loadFriends();
-      void loadConversations();
-    }
-  }, [revision, location.pathname]);
+  }, []);
 
   useEffect(() => {
-    if (
-      activeTab !== "requests" ||
-      location.pathname !== "/app/friends" ||
-      !isNotificationAppActive()
-    )
-      return;
-    const ids = requests
-      .map((request) => request.connectionId)
-      .filter((id) => !seenRequests.current.has(id))
-      .slice(0, 100);
+    if (new URLSearchParams(location.search).get("tab") === "requests") setActiveTab("requests");
+  }, [location.search]);
+
+  // One coalesced refresh for route entry and notification updates; preserve visible rows.
+  useEffect(() => {
+    if (!pageActive.current) return;
+    const timer = setTimeout(() => { void loadData(); }, loaded.current ? 120 : 0);
+    return () => clearTimeout(timer);
+  }, [revision, location.pathname, loadData]);
+
+  useEffect(() => {
+    const refresh = () => { if (pageActive.current && isNotificationAppActive()) void loadData(); };
+    window.addEventListener(CHAT_LIST_CHANGED, refresh);
+    window.addEventListener("linkup:app-resume", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener(CHAT_LIST_CHANGED, refresh);
+      window.removeEventListener("linkup:app-resume", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      pageActive.current = false;
+      if (press.current) clearTimeout(press.current.timer);
+    };
+  }, [loadData]);
+
+  useEffect(() => {
+    if (activeTab !== "requests" || !pageActive.current || !isNotificationAppActive()) return;
+    const ids = requests.map(item => item.connectionId).filter(id => !seenRequests.current.has(id)).slice(0, 100);
     if (!ids.length) return;
-    ids.forEach((id) => seenRequests.current.add(id));
-    void readRequestNotifications(ids)
-      .then(() => refreshNotifications())
-      .catch(() => ids.forEach((id) => seenRequests.current.delete(id)));
+    ids.forEach(id => seenRequests.current.add(id));
+    void readRequestNotifications(ids).then(() => refreshNotifications())
+      .catch(() => ids.forEach(id => seenRequests.current.delete(id)));
   }, [requests, activeTab, location.pathname, refreshNotifications]);
-  const handleAccept = async (connectionId: number) => {
-    try {
-      setActionLoading(connectionId);
 
-      const response = await acceptConnectionRequest(connectionId);
+  const conversationByFriend = useMemo(() => new Map(
+    conversations.filter(chat => chat.type === "DIRECT").map(chat => [chat.friendPublicId, chat]),
+  ), [conversations]);
+  const search = searchText.trim().toLowerCase();
+  const filteredFriends = useMemo(() => friends
+    .filter(friend => friend.username.toLowerCase().includes(search))
+    .slice().sort((a, b) => {
+      const first = conversationByFriend.get(a.userId), second = conversationByFriend.get(b.userId);
+      return (second?.lastMessage ? chatTimestamp(second.lastMessageAt) || 0 : 0)
+        - (first?.lastMessage ? chatTimestamp(first.lastMessageAt) || 0 : 0);
+    }), [friends, search, conversationByFriend]);
+  const filteredRequests = requests.filter(item => item.username.toLowerCase().includes(search));
+  const introductions = conversations.filter(chat => chat.friends === false && chat.friendUsername.toLowerCase().includes(search));
 
-      const acceptedFriend = response.data.data;
-
-      setRequests((previous) =>
-        previous.filter((request) => request.connectionId !== connectionId),
-      );
-
-      if (acceptedFriend) {
-        setFriends((previous) => [acceptedFriend, ...previous]);
-      } else {
-        await loadFriends();
-      }
-    } catch (error) {
-      console.error("Failed to accept request:", error);
-
-      toast.error("Could not accept friend request.");
-    } finally {
-      setActionLoading(null);
-      void refreshNotifications();
-    }
+  const rememberConversation = (chat: ConversationResponse) => {
+    setConversations(previous => [chat, ...previous.filter(item => item.conversationId !== chat.conversationId)]);
   };
 
-  /**
-   * Reject friend request.
-   */
-  const handleReject = async (connectionId: number) => {
-    try {
-      setActionLoading(connectionId);
-
-      await rejectConnectionRequest(connectionId);
-
-      setRequests((previous) =>
-        previous.filter((request) => request.connectionId !== connectionId),
-      );
-    } catch (error) {
-      console.error("Failed to reject request:", error);
-
-      toast.error("Could not reject friend request.");
-    } finally {
-      setActionLoading(null);
-      void refreshNotifications();
-    }
-  };
-
-  /**
-   * Friend search.
-   */
-  const filteredFriends = useMemo(() => {
-    const value = searchText.trim().toLowerCase();
-
-    if (!value) {
-      return friends;
-    }
-
-    return friends.filter((friend) =>
-      friend.username?.toLowerCase().includes(value),
-    );
-  }, [friends, searchText]);
-
-  /**
-   * Friend request search.
-   */
-  const filteredRequests = useMemo(() => {
-    const value = searchText.trim().toLowerCase();
-
-    if (!value) {
-      return requests;
-    }
-
-    return requests.filter((request) =>
-      request.username?.toLowerCase().includes(value),
-    );
-  }, [requests, searchText]);
-
-  /**
-   * Find conversation belonging to this friend.
-   *
-   * ConnectionResponse:
-   *
-   * friend.userId
-   *
-   * ConversationResponse:
-   *
-   * conversation.friendPublicId
-   */
-  const getFriendConversation = (
-    friendPublicId: string,
-  ): ConversationResponse | undefined => {
-    return conversations.find(
-      (conversation) => conversation.friendPublicId === friendPublicId,
-    );
-  };
-
-  /**
-   * Open friend profile.
-   */
-  const openProfile = (publicId: string) => {
-    history.push(`/app/person/${publicId}`);
-  };
-
-  /**
-   * Open/create direct conversation.
-   */
   const openChat = async (friend: ConnectionResponse) => {
+    if (openingChat.current || actionBusy.current) return;
+    openingChat.current = true;
+    setChatLoadingId(friend.connectionId);
     try {
-      setChatLoadingId(friend.connectionId);
+      const conversation = conversationByFriend.get(friend.userId) ?? await getOrCreateDirectConversation(friend.userId);
+      rememberConversation(conversation);
+      if (pageActive.current) history.push(`/app/friend-chat/${conversation.conversationId}`, { conversation, friend });
+    } catch { toast.error("Could not open this chat. Please try again."); }
+    finally { openingChat.current = false; setChatLoadingId(null); }
+  };
 
-      const conversation = await getOrCreateDirectConversation(friend.userId);
+  const toggleMute = async (friend: ConnectionResponse) => {
+    if (actionBusy.current || openingChat.current) return;
+    actionBusy.current = true;
+    setMuteLoadingId(friend.connectionId);
+    mutationVersion.current++;
+    try {
+      const chat = conversationByFriend.get(friend.userId) ?? await getOrCreateDirectConversation(friend.userId);
+      const muted = !chat.muted;
+      await setConversationMuted(chat.conversationId, muted);
+      mutationVersion.current++;
+      rememberConversation({ ...chat, muted });
+      toast.success(muted ? "Chat muted." : "Chat unmuted.");
+      notifyChatListChanged();
+    } catch { toast.error("Could not change mute settings. Please try again."); }
+    finally { actionBusy.current = false; setMuteLoadingId(null); }
+  };
 
-      /**
-       * Keep local conversation data updated.
-       *
-       * If conversation already exists → replace it.
-       *
-       * Otherwise → add it.
-       */
-      setConversations((previous) => {
-        const exists = previous.some(
-          (item) => item.conversationId === conversation.conversationId,
-        );
+  const cancelPress = () => { if (press.current) clearTimeout(press.current.timer); press.current = null; };
+  const startPress = (event: ReactPointerEvent<HTMLButtonElement>, friend: ConnectionResponse) => {
+    cancelPress(); suppressClick.current = false;
+    if (event.button !== 0 || actionBusy.current || openingChat.current) return;
+    press.current = { x: event.clientX, y: event.clientY, timer: setTimeout(() => {
+      suppressClick.current = true; setMuteMenu(friend); press.current = null;
+    }, 500) };
+  };
+  const movePress = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (press.current && Math.hypot(event.clientX - press.current.x, event.clientY - press.current.y) > 10) cancelPress();
+  };
 
-        if (exists) {
-          return previous.map((item) =>
-            item.conversationId === conversation.conversationId
-              ? conversation
-              : item,
-          );
-        }
-
-        return [...previous, conversation];
-      });
-
-      history.push(`/app/friend-chat/${conversation.conversationId}`, {
-        conversation,
-        friend,
-      });
-    } catch (error) {
-      console.error("Failed to open friend chat:", error);
-
-      toast.error("Could not open this chat.");
-    } finally {
-      setChatLoadingId(null);
-    }
+  const respondToRequest = async (request: ConnectionResponse, accept: boolean) => {
+    if (actionBusy.current) return;
+    actionBusy.current = true; setActionLoading(request.connectionId); mutationVersion.current++;
+    try {
+      if (accept) {
+        const response = await acceptConnectionRequest(request.connectionId);
+        const friend = response.data.data;
+        if (friend) setFriends(previous => [friend, ...previous.filter(item => item.userId !== friend.userId)]);
+      } else await rejectConnectionRequest(request.connectionId);
+      mutationVersion.current++;
+      setRequests(previous => previous.filter(item => item.connectionId !== request.connectionId));
+      void loadData();
+    } catch { toast.error(accept ? "Could not accept friend request." : "Could not reject friend request."); }
+    finally { actionBusy.current = false; setActionLoading(null); void refreshNotifications(); }
   };
 
   return (
-    <IonPage>
+    <IonPage className="linkup-friends-page">
       <Header />
-
-      <IonContent fullscreen>
-        <IonSearchbar
-          value={searchText}
-          onIonInput={(event) => setSearchText(event.detail.value ?? "")}
-          placeholder="Search friends"
-        />
-
-        <IonSegment
-          value={activeTab}
-          onIonChange={(event) =>
-            setActiveTab(event.detail.value as FriendsTab)
-          }
-        >
-          <IonSegmentButton value="friends">
-            <IonLabel>
-              YOUR FRIENDS{" "}
-              {counts.messages > 0 && (
-                <IonBadge color="danger">
-                  {badgeCount(counts.messages)}
-                </IonBadge>
-              )}
-            </IonLabel>
-          </IonSegmentButton>
-
-          <IonSegmentButton value="requests">
-            <IonLabel>
-              FRIEND REQUESTS
-              {counts.requests > 0 && (
-                <IonBadge color="danger">
-                  {badgeCount(counts.requests)}
-                </IonBadge>
-              )}
-            </IonLabel>
-          </IonSegmentButton>
+      <IonContent>
+        <IonSearchbar value={searchText} onIonInput={event => setSearchText(event.detail.value ?? "")} placeholder="Search friends" />
+        <IonSegment className="friends-tabs" value={activeTab} onIonChange={event => setActiveTab(event.detail.value === "requests" ? "requests" : "friends")}>
+          <IonSegmentButton value="friends"><IonLabel>Your friends {counts.messages > 0 && <IonBadge>{badgeCount(counts.messages)}</IonBadge>}</IonLabel></IonSegmentButton>
+          <IonSegmentButton value="requests"><IonLabel>Friend requests {counts.requests > 0 && <IonBadge>{badgeCount(counts.requests)}</IonBadge>}</IonLabel></IonSegmentButton>
         </IonSegment>
-
-        {loading ? (
-          <div className="friends-loading">
-            <IonSpinner name="crescent" />
-
-            <p>Loading...</p>
-          </div>
+        {loading ? <div className="friends-loading"><IonSpinner name="crescent" /><p>Loading…</p></div> : loadError ? (
+          <div className="friends-empty"><p>Could not load your chats.</p><IonButton onClick={() => { void loadData(); }}>Try again</IonButton></div>
+        ) : activeTab === "friends" ? (
+          filteredFriends.length ? <ul className="friends-chat-list">
+            {filteredFriends.map(friend => {
+              const chat = conversationByFriend.get(friend.userId);
+              const unread = Math.max(0, chat?.unreadCount ?? 0);
+              return <li key={friend.connectionId}>
+                <button type="button" className={`friends-chat-row ${unread ? "has-unread" : ""}`}
+                  aria-label={`Chat with ${friend.username}${unread ? `, ${unread} unread messages` : ""}`}
+                  aria-haspopup="dialog" disabled={chatLoadingId !== null || muteLoadingId !== null || actionLoading !== null}
+                  onClick={() => { cancelPress(); if (suppressClick.current) { suppressClick.current = false; return; } void openChat(friend); }}
+                  onPointerDown={event => startPress(event, friend)} onPointerMove={movePress}
+                  onPointerUp={cancelPress} onPointerCancel={cancelPress} onPointerLeave={cancelPress}
+                  onContextMenu={event => { event.preventDefault(); cancelPress(); suppressClick.current = true; setMuteMenu(friend); }}
+                  onKeyDown={event => { if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) { event.preventDefault(); cancelPress(); setMuteMenu(friend); } }}>
+                  <span className="friends-chat-avatar">
+                    {friend.profilePhoto ? <img src={friend.profilePhoto} alt="" loading="lazy" /> : <IonIcon icon={personCircleSharp} aria-hidden="true" />}
+                    {friend.online && <span className="friends-online-dot" role="img" aria-label="Online" />}
+                  </span>
+                  <span className="friends-chat-copy"><strong>{friend.username}</strong><span className="friends-message-preview">{chat?.lastMessage || "Say hello"}</span></span>
+                  <span className="friends-chat-meta">
+                    {chat?.lastMessage && <time className="friends-message-time" dateTime={chat.lastMessageAt ?? undefined}>{formatChatListTime(chat.lastMessageAt)}</time>}
+                    <span className="friends-chat-indicators">
+                      {chat?.muted && <IonIcon className="friends-muted" icon={notificationsOffOutline} role="img" aria-label="Muted" />}
+                      {(chatLoadingId === friend.connectionId || muteLoadingId === friend.connectionId) ? <IonSpinner name="crescent" /> : unread > 0 && <span className={`friends-unread-badge ${chat?.muted ? "is-muted" : ""}`}>{badgeCount(unread)}</span>}
+                    </span>
+                  </span>
+                </button>
+              </li>;
+            })}
+          </ul> : <div className="friends-empty"><IonIcon icon={personCircleSharp} /><h3>{search ? "No matching friends" : "No friends yet"}</h3><p>{search ? "Try another name." : "Connect with people nearby to build your friend list."}</p></div>
         ) : (
-          <>
-            {/* ================= FRIENDS ================= */}
-
-            {activeTab === "friends" && (
-              <IonList>
-                {filteredFriends.length === 0 ? (
-                  <div className="friends-empty">
-                    <IonIcon icon={personCircleSharp} />
-
-                    <h3>No friends yet</h3>
-
-                    <p>Connect with people nearby to build your friend list.</p>
-                  </div>
-                ) : (
-                  filteredFriends.map((friend) => {
-                    /**
-                     * Find matching conversation.
-                     */
-                    const conversation = getFriendConversation(friend.userId);
-
-                    /**
-                     * Get unread count.
-                     */
-                    const unreadCount = conversation?.unreadCount ?? 0;
-
-                    return (
-                      <IonItem
-                        key={friend.connectionId}
-                        lines="none"
-                        className="friend-item"
-                        button
-                        onClick={() => openProfile(friend.userId)}
-                      >
-                        {/* Profile photo */}
-
-                        <IonAvatar slot="start">
-                          {friend.profilePhoto ? (
-                            <img
-                              src={friend.profilePhoto}
-                              alt={friend.username}
-                            />
-                          ) : (
-                            <IonIcon size="large" icon={personCircleSharp} />
-                          )}
-                        </IonAvatar>
-
-                        {/* Friend information */}
-
-                        <IonLabel>
-                          <h2>{friend.username}</h2>
-
-                          <IonText color={friend.online ? "success" : "medium"}>
-                            <p>
-                              <span
-                                className={`status-dot ${
-                                  friend.online ? "online" : "offline"
-                                }`}
-                              />
-
-                              {friend.online ? "Online" : "Offline"}
-                            </p>
-                          </IonText>
-                        </IonLabel>
-
-                        {/* ================= UNREAD BADGE ================= */}
-
-                        {unreadCount > 0 && (
-                          <IonBadge
-                            slot="end"
-                            color="danger"
-                            style={{
-                              marginRight: "8px",
-                            }}
-                          >
-                            {unreadCount > 99 ? "99+" : unreadCount}
-                          </IonBadge>
-                        )}
-
-                        {/* ================= ACTIONS ================= */}
-
-                        <IonButtons slot="end">
-                          <IonButton
-                            fill="clear"
-                            disabled={
-                              chatLoadingId !== null || actionLoading !== null
-                            }
-                            onClick={(event) => {
-                              event.stopPropagation();
-
-                              void openChat(friend);
-                            }}
-                          >
-                            {chatLoadingId === friend.connectionId ? (
-                              <IonSpinner name="crescent" />
-                            ) : (
-                              <IonIcon slot="icon-only" icon={chatboxOutline} />
-                            )}
-                          </IonButton>
-
-                          <IonButton
-                            fill="clear"
-                            aria-label={`Options for ${friend.username}`}
-                            disabled={
-                              actionLoading !== null || chatLoadingId !== null
-                            }
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setFriendMenu({
-                                friend,
-                                event: event.nativeEvent,
-                              });
-                            }}
-                          >
-                            {actionLoading === friend.connectionId ? (
-                              <IonSpinner name="crescent" />
-                            ) : (
-                              <IonIcon
-                                slot="icon-only"
-                                icon={ellipsisVerticalOutline}
-                              />
-                            )}
-                          </IonButton>
-                        </IonButtons>
-                      </IonItem>
-                    );
-                  })
-                )}
-              </IonList>
-            )}
-
-            {/* ================= REQUESTS ================= */}
-
-            {activeTab === "requests" && (
-              <IonList>
-                {conversations
-                  .filter((chat) => chat.friends === false)
-                  .map((chat) => (
-                    <IonItem
-                      key={`intro-${chat.conversationId}`}
-                      button
-                      onClick={() =>
-                        history.push(
-                          `/app/friend-chat/${chat.conversationId}`,
-                          { conversation: chat },
-                        )
-                      }
-                    >
-                      <IonLabel>
-                        <h2>{chat.friendUsername}</h2>
-                        <p>{chat.lastMessage || "Introduction conversation"}</p>
-                      </IonLabel>
-                      {chat.unreadCount > 0 && (
-                        <IonBadge>{chat.unreadCount}</IonBadge>
-                      )}
-                    </IonItem>
-                  ))}
-                {filteredRequests.length === 0 ? (
-                  <div className="friends-empty">
-                    <IonIcon icon={personCircleSharp} />
-
-                    <h3>No friend requests</h3>
-
-                    <p>New connection requests will appear here.</p>
-                  </div>
-                ) : (
-                  filteredRequests.map((request) => (
-                    <IonItem
-                      key={request.connectionId}
-                      lines="none"
-                      className="friend-item"
-                    >
-                      <IonAvatar slot="start">
-                        {request.profilePhoto ? (
-                          <img
-                            src={request.profilePhoto}
-                            alt={request.username}
-                          />
-                        ) : (
-                          <IonIcon size="large" icon={personCircleSharp} />
-                        )}
-                      </IonAvatar>
-
-                      <IonLabel>
-                        <h2>{request.username}</h2>
-
-                        {request.age && <p>{request.age} years old</p>}
-
-                        <p className="request-text">
-                          Wants to connect with you
-                        </p>
-                      </IonLabel>
-
-                      <IonButtons slot="end">
-                        <IonButton
-                          color="success"
-                          fill="clear"
-                          disabled={actionLoading === request.connectionId}
-                          onClick={() => handleAccept(request.connectionId)}
-                        >
-                          <IonIcon slot="icon-only" icon={checkmarkOutline} />
-                        </IonButton>
-
-                        <IonButton
-                          color="danger"
-                          fill="clear"
-                          disabled={actionLoading === request.connectionId}
-                          onClick={() => handleReject(request.connectionId)}
-                        >
-                          <IonIcon slot="icon-only" icon={closeOutline} />
-                        </IonButton>
-                      </IonButtons>
-                    </IonItem>
-                  ))
-                )}
-              </IonList>
-            )}
-          </>
+          <IonList className="friends-request-list">
+            {introductions.map(chat => <IonItem key={`intro-${chat.conversationId}`} button detail={false} onClick={() => history.push(`/app/friend-chat/${chat.conversationId}`, { conversation: chat })}>
+              <IonAvatar slot="start">{chat.friendProfilePhoto ? <img src={chat.friendProfilePhoto} alt="" /> : <IonIcon icon={personCircleSharp} />}</IonAvatar>
+              <IonLabel><h2>{chat.friendUsername}</h2><p>{chat.lastMessage || "Introduction conversation"}</p></IonLabel>
+              {chat.unreadCount > 0 && <IonBadge slot="end">{badgeCount(chat.unreadCount)}</IonBadge>}
+            </IonItem>)}
+            {!filteredRequests.length && !introductions.length && <div className="friends-empty"><IonIcon icon={personCircleSharp} /><h3>{search ? "No matching requests" : "No friend requests"}</h3><p>New connection requests will appear here.</p></div>}
+            {filteredRequests.map(request => <IonItem key={request.connectionId} lines="none" className="friend-request-item">
+              <IonAvatar slot="start">{request.profilePhoto ? <img src={request.profilePhoto} alt="" /> : <IonIcon icon={personCircleSharp} />}</IonAvatar>
+              <IonLabel><h2>{request.username}</h2>{request.age ? <p>{request.age} years old</p> : null}<p>Wants to connect with you</p></IonLabel>
+              <IonButtons slot="end"><IonButton aria-label={`Accept ${request.username}`} color="success" disabled={actionLoading !== null} onClick={() => { void respondToRequest(request, true); }}><IonIcon slot="icon-only" icon={checkmarkOutline} /></IonButton><IonButton aria-label={`Decline ${request.username}`} color="danger" disabled={actionLoading !== null} onClick={() => { void respondToRequest(request, false); }}><IonIcon slot="icon-only" icon={closeOutline} /></IonButton></IonButtons>
+            </IonItem>)}
+          </IonList>
         )}
       </IonContent>
-      <IonPopover
-        ref={friendPopover}
-        isOpen={friendMenu !== null}
-        event={friendMenu?.event}
-        onDidDismiss={() => setFriendMenu(null)}
-      >
-        <IonList lines="none">
-          {(["remove", "block", "report"] as const).map((action) => (
-            <IonItem
-              key={action}
-              button
-              detail={false}
-              onClick={() => {
-                void selectFriendAction(action);
-              }}
-            >
-              <IonLabel>{friendActionLabels[action]}</IonLabel>
-            </IonItem>
-          ))}
-        </IonList>
-      </IonPopover>
-
-      <IonAlert
-        isOpen={friendAction !== null}
-        header={friendAction ? friendActionLabels[friendAction.action] : ""}
-        subHeader={friendAction?.friend.username}
-        message={
-          friendAction?.action === "report"
-            ? "Describe why you are reporting this person."
-            : friendAction?.action === "block"
-              ? "This removes the friendship and prevents private messages."
-              : "Remove this person from your friends?"
-        }
-        backdropDismiss={!friendActionBusy.current}
-        onDidDismiss={() => setFriendAction(null)}
-        inputs={friendActionInputs}
-        buttons={[
-          {
-            text: "Cancel",
-            role: "cancel",
-            handler: () => !friendActionBusy.current,
-          },
-          {
-            text: friendAction
-              ? friendActionLabels[friendAction.action]
-              : "Confirm",
-            handler: (data: { reason?: string }) =>
-              submitFriendAction(data?.reason),
-          },
-        ]}
-      />
+      <IonActionSheet isOpen={muteMenu !== null} header={muteMenu?.username} onDidDismiss={() => setMuteMenu(null)} buttons={[
+        { text: muteMenu && conversationByFriend.get(muteMenu.userId)?.muted ? "Unmute notifications" : "Mute notifications", handler: () => { if (muteMenu) void toggleMute(muteMenu); } },
+        { text: "Cancel", role: "cancel" },
+      ]} />
     </IonPage>
   );
 };
-
 export default FriendsPage;

@@ -1,103 +1,45 @@
-.friends-loading {
-  min-height: 50vh;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 12px;
-
-  color: var(--ion-color-medium);
+.linkup-friends-page {
+  --friends-unread: #178b68;
+  .friends-loading, .friends-empty { min-height: 45vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px; text-align: center; color: var(--ion-color-medium); }
+  .friends-empty > ion-icon { font-size: 62px; opacity: .6; }
+  .friends-empty h3 { margin: 0; color: var(--ion-text-color); font-size: 18px; }
+  .friends-empty p { margin: 0; max-width: 290px; line-height: 1.6; }
+  .friends-tabs { padding: 0 7px; }
+  .friends-tabs ion-segment-button { min-width: 0; --padding-start: 3px; --padding-end: 3px; }
+  .friends-tabs ion-label { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 12px 0; font-size: 11px; letter-spacing: .2px; white-space: normal; }
+  ion-badge { background: var(--friends-unread); color: #fff; border-radius: 20px; min-width: 20px; font-size: 11px; padding: 4px 6px; }
+  .friends-chat-list { list-style: none; margin: 7px 0 0; padding: 0; }
+  .friends-chat-row {
+    display: flex; align-items: center; width: 100%; min-height: 87px; gap: 13px;
+    padding: 15px 17px; border: 0; background: var(--ion-background-color); color: var(--ion-text-color);
+    text-align: left; font: inherit; cursor: pointer; touch-action: pan-y; user-select: none;
+    -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+    &:active { background: rgba(var(--ion-color-primary-rgb), .08); }
+    &:focus-visible { outline: 2px solid var(--ion-color-primary); outline-offset: -3px; }
+    &:disabled { cursor: default; }
+  }
+  .friends-chat-list li + li .friends-chat-row { border-top: 1px solid rgba(var(--ion-color-medium-rgb), .09); }
+  .friends-chat-avatar { position: relative; flex: 0 0 54px; width: 54px; height: 54px; }
+  .friends-chat-avatar img, .friends-chat-avatar > ion-icon { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; color: var(--ion-color-medium); }
+  .friends-online-dot { position: absolute; right: 0; bottom: 1px; width: 13px; height: 13px; background: #23b887; border: 2.5px solid var(--ion-background-color); border-radius: 50%; }
+  .friends-chat-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .friends-chat-copy > strong { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .friends-message-preview { font-size: 13px; line-height: 1.4; color: var(--ion-color-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .friends-chat-meta { min-width: 48px; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 7px; }
+  .friends-message-time { font-size: 11px; white-space: nowrap; color: var(--ion-color-medium); }
+  .friends-chat-indicators { min-height: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+  .friends-muted { font-size: 17px; color: var(--ion-color-medium); }
+  .friends-chat-indicators ion-spinner { width: 20px; height: 20px; color: var(--ion-color-primary); }
+  .friends-unread-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 14px; background: var(--friends-unread); color: #fff; font-size: 11px; font-weight: 700; }
+  .friends-unread-badge.is-muted { background: var(--ion-color-medium); color: var(--ion-color-medium-contrast); }
+  .has-unread .friends-chat-copy > strong, .has-unread .friends-message-preview { font-weight: 700; color: var(--ion-text-color); }
+  .has-unread .friends-message-time { color: var(--friends-unread); font-weight: 600; }
+  .friends-request-list { padding-top: 8px; }
+  .friends-request-list ion-avatar { width: 48px; height: 48px; }
+  .friends-request-list ion-avatar ion-icon { width: 100%; height: 100%; color: var(--ion-color-medium); }
+  .friend-request-item { --padding-start: 14px; --inner-padding-end: 6px; margin: 4px 0; }
+  .friend-request-item h2 { font-size: 15px; font-weight: 600; }
+  .friend-request-item p { font-size: 12px; }
+  @media (max-width: 360px) { .friends-chat-row { padding: 13px 12px; gap: 10px; } .friends-chat-avatar { flex-basis: 48px; width: 48px; height: 48px; } .friends-chat-copy > strong { font-size: 15px; } }
 }
-
-.friends-empty {
-  min-height: 45vh;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-
-  padding: 32px;
-
-  color: var(--ion-color-medium);
-}
-
-.friends-empty ion-icon {
-  font-size: 64px;
-  margin-bottom: 12px;
-  opacity: 0.65;
-}
-
-.friends-empty h3 {
-  margin: 0 0 8px;
-  color: var(--ion-text-color);
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.friends-empty p {
-  margin: 0;
-  max-width: 280px;
-  line-height: 1.5;
-}
-
-.friend-item {
-  --padding-start: 14px;
-  --padding-end: 8px;
-  --inner-padding-end: 0;
-
-  margin: 4px 8px;
-
-  border-radius: 14px;
-}
-
-.friend-item ion-avatar {
-  width: 52px;
-  height: 52px;
-}
-
-.friend-item ion-avatar ion-icon {
-  width: 100%;
-  height: 100%;
-}
-
-.friend-item h2 {
-  font-size: 16px;
-  font-weight: 650;
-  margin-bottom: 4px;
-}
-
-.friend-item p {
-  margin: 0;
-}
-
-.status-dot {
-  display: inline-block;
-
-  width: 8px;
-  height: 8px;
-
-  border-radius: 50%;
-
-  margin-right: 6px;
-}
-
-.status-dot.online {
-  background: var(--ion-color-success);
-}
-
-.status-dot.offline {
-  background: var(--ion-color-medium);
-}
-
-.request-text {
-  margin-top: 4px !important;
-  font-size: 13px;
-  color: var(--ion-color-medium);
-}
+[data-theme="dark"] .linkup-friends-page, [data-theme="modern"] .linkup-friends-page { --friends-unread: #25aa7e; .has-unread .friends-message-time { color: #49d5a5; } }

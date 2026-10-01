@@ -72,11 +72,11 @@ export async function unfriend(publicId: string) {
 }
 
 export async function blockUser(publicId: string) {
-  return axiosClient.post<ApiEnvelope<void>>(ENDPOINTS.blockUser(publicId));
+  return axiosClient.post<ApiEnvelope<void>>(`${ENDPOINTS.unfriend(publicId)}/block`);
 }
 
 export async function reportUser(publicId: string, reason: string) {
-  return axiosClient.post<ApiEnvelope<void>>(ENDPOINTS.reportUser(publicId), {
-    reason,
-  });
+  return axiosClient.post<ApiEnvelope<void>>(
+    `${ENDPOINTS.unfriend(publicId)}/report`, { reason },
+  );
 }

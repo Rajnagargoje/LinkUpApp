@@ -9,7 +9,18 @@
   align-items: center;
   min-width: 0;
   height: 100%;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ion-text-color);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.friend-chat-user:focus-visible { outline: 2px solid var(--ion-color-primary); outline-offset: -2px; }
+.friend-chat-avatar-wrap { position: relative; flex: 0 0 38px; }
+.friend-chat-online-dot { position: absolute; right: -1px; bottom: 0; width: 11px; height: 11px; background: #23b887; border: 2px solid var(--ion-background-color); border-radius: 50%; }
 
 .friend-chat-avatar {
   width: 38px;
@@ -32,7 +43,7 @@
 }
 
 .friend-chat-user-copy strong {
-  max-width: 150px;
+  max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -146,8 +157,7 @@
   justify-content: flex-end;
   gap: 4px;
   margin-top: 3px;
-  font-size: 9.5px;
-  opacity: 0.72;
+  font-size: 10px;
 }
 
 .friend-chat-message-meta ion-icon {
@@ -182,3 +192,7 @@
   --padding-start: 0;
   --padding-end: 0;
 }
+
+.friend-chat-message-meta .message-read { color: #77daff; opacity: 1; }
+.friend-chat-header ion-buttons[slot="end"] ion-button { width: 40px; margin: 0; }
+.friend-chat-header ion-buttons[slot="end"] ion-spinner { width: 20px; height: 20px; }
