@@ -34,6 +34,8 @@ import PublicRoute from "./routes/PublicRoute";
 import OnboardingRoute from "./routes/OnboardingRoute";
 import AuthOnlyRoute from "./routes/AuthOnlyRoute";
 import SplashScreen from "./components/SplashScreen";
+import ProfileInviteHandler from "./components/ProfileInviteHandler";
+
 
 setupIonicReact();
 
@@ -49,33 +51,31 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <IonReactRouter>
-      <NotificationProvider>
-        <Switch>
-          <PublicRoute exact path="/">
-            <LoginPage />
-          </PublicRoute>
-          <PublicRoute exact path="/signup">
-            <SignUpPage />
-          </PublicRoute>
-          {/* Authenticated-only, no onboarding requirement either way —
+    <IonReactRouter><NotificationProvider><ProfileInviteHandler />
+      <Switch>
+        <PublicRoute exact path="/">
+          <LoginPage />
+        </PublicRoute>
+        <PublicRoute exact path="/signup">
+          <SignUpPage />
+        </PublicRoute>
+        {/* Authenticated-only, no onboarding requirement either way —
             reachable right after register AND later from Settings. */}
-          <AuthOnlyRoute exact path="/verify-email">
-            <VerifyEmailPage />
-          </AuthOnlyRoute>
-          {/* Authenticated + NOT yet onboarded only (see OnboardingRoute). */}
-          <OnboardingRoute exact path="/onboarding">
-            <OnboardingPage />
-          </OnboardingRoute>
-          <ProtectedRoute path="/app">
-            <AppTabs />
-          </ProtectedRoute>
-          <Route>
-            <Redirect to="/" />
-          </Route>
-        </Switch>
-      </NotificationProvider>
-    </IonReactRouter>
+        <AuthOnlyRoute exact path="/verify-email">
+          <VerifyEmailPage />
+        </AuthOnlyRoute>
+        {/* Authenticated + NOT yet onboarded only (see OnboardingRoute). */}
+        <OnboardingRoute exact path="/onboarding">
+          <OnboardingPage />
+        </OnboardingRoute>
+        <ProtectedRoute path="/app">
+          <AppTabs />
+        </ProtectedRoute>
+        <Route>
+          <Redirect to="/" />
+        </Route>
+      </Switch>
+    </NotificationProvider></IonReactRouter>
   );
 };
 

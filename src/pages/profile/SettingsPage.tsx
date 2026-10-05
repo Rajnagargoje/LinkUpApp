@@ -1,322 +1,232 @@
+import { useEffect, useState } from "react";
+import { IonIcon } from "@ionic/react";
+import { Route, Switch, useHistory } from "react-router";
 import {
-  IonAlert,
-  IonAvatar,
-  IonBackButton,
-  IonButton,
-  IonButtons,
-  IonCol,
-  IonContent,
-  IonGrid,
-  IonHeader,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonMenuButton,
-  IonPage,
-  IonRow,
-  IonSegment,
-  IonSegmentButton,
-  IonText,
-  IonTitle,
-  IonToolbar,
-  useIonLoading,
-  useIonRouter,
-} from "@ionic/react";
-import ExploreContainer from "../../components/ExploreContainer";
-import {
-  appsOutline,
-  arrowForwardOutline,
   banOutline,
-  contract,
+  chevronForwardOutline,
+  colorPaletteOutline,
   documentTextOutline,
-  giftOutline,
-  imageOutline,
-  lockClosedOutline,
+  helpCircleOutline,
+  logoInstagram,
+  logoTiktok,
   mailOutline,
-  manOutline,
-  person,
-  personAddOutline,
+  notificationsOutline,
   personCircleOutline,
   personOutline,
-  settingsOutline,
+  qrCodeOutline,
   shieldCheckmarkOutline,
 } from "ionicons/icons";
-import "./Settings.scss";
-import { useState } from "react";
 import toast from "react-hot-toast";
-import { useLinkUpTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLinkUpTheme } from "../../contexts/ThemeContext";
+import { SettingsLayout, SettingsLink } from "./settings/SettingsLayout";
+import AppearanceSettingsPage from "./settings/AppearanceSettingsPage";
+import PrivacySettingsPage from "./settings/PrivacySettingsPage";
+import BlockedUsersPage from "./settings/BlockedUsersPage";
+import InviteFriendsPage from "./settings/InviteFriendsPage";
+import AccountSettingsPage from "./settings/AccountSettingsPage";
+import HelpSupportPage from "./settings/HelpSupportPage";
+import ContactSupportPage from "./settings/ContactSupportPage";
+import LegalSettingsPage from "./settings/LegalSettingsPage";
+import { openSettingsLink } from "../../service/inviteService";
+import {
+  PublicSettings,
+  getPublicSettings,
+} from "../../service/settingsService";
 
-const SettingsPage: React.FC = () => {
-  const { theme, setTheme } = useLinkUpTheme();
-  const { user, logout, deleteAccount } = useAuth();
-  const router = useIonRouter();
-  const [present, dismiss] = useIonLoading();
-  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    toast.success("Logged out");
-    router.push("/", "root");
-  };
-
-  const handleDeleteAccount = async () => {
-    await present("Deleting your account…");
-    try {
-      await deleteAccount();
-      dismiss();
-      toast.success("Your account has been deleted");
-      router.push("/", "root");
-    } catch (error: any) {
-      dismiss();
-      toast.error(
-        error?.response?.data?.message ||
-          "Unable to delete your account right now. Please try again.",
-      );
-    }
-  };
-
+function SettingsHome() {
+  const { user } = useAuth();
+  const { preference } = useLinkUpTheme();
+  const history = useHistory();
+  const [config, setConfig] = useState<PublicSettings | null>(null);
+  useEffect(() => {
+    let active = true;
+    void getPublicSettings()
+      .then((value) => {
+        if (active) setConfig(value);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+  const follow = (url: string) =>
+    void openSettingsLink(url).catch(() =>
+      toast.error("Unable to open this link."),
+    );
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonBackButton defaultHref="/app/home" />
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonList className="settings-list settings-section">
-          <IonItem button routerLink="/app/notifications/settings" detail>
-            <IonIcon icon={mailOutline} slot="start" />
-            <IonLabel>Notifications</IonLabel>
-          </IonItem>
-        </IonList>
-        <IonSegment
-          value={theme}
-          onIonChange={(e) => setTheme(e.detail.value as any)}
+    <SettingsLayout title="Settings" back="/app/account">
+      <div className="settings-intro settings-home-intro">
+        <span className="settings-eyebrow">YOUR LINKUP</span>
+        <h1>A little more you.</h1>
+        <p>Make your space feel right.</p>
+      </div>
+      <div className="settings-profile-card">
+        <button
+          className="settings-profile-main"
+          onClick={() => history.push("/app/me/settings/account")}
         >
-          <IonSegmentButton value="light">
-            <IonLabel>Light</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="dark">
-            <IonLabel>Dark</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="modern">
-            <IonLabel>Modern</IonLabel>
-          </IonSegmentButton>
-        </IonSegment>
-
-        {/* Only shown if the person skipped verification after signup —
-            this is the ONLY way back to that screen once skipped, since
-            the app never forces it again on its own. */}
-        {user && !user.emailVerified && (
-          <IonList className="settings-list settings-section">
-            <IonItem
-              button
-              className="settings-item"
-              lines="none"
-              routerLink="/verify-email"
-            >
-              <IonIcon
-                slot="start"
-                icon={mailOutline}
-                className="settings-icon"
-              />
-              <IonLabel>
-                <h2>Verify your email</h2>
-                <p>
-                  You won't be able to reset your password until this is done
-                </p>
-              </IonLabel>
-              <IonIcon
-                slot="end"
-                icon={arrowForwardOutline}
-                className="settings-arrow"
-              />
-            </IonItem>
-          </IonList>
-        )}
-
-        <IonList className="settings-list settings-section">
-          <IonItem button className="settings-item" lines="none">
-            <IonIcon
-              slot="start"
-              icon={giftOutline}
-              className="settings-icon"
-            />
-
-            <IonLabel>Invite friends</IonLabel>
-          </IonItem>
-        </IonList>
-        <IonList className="settings-list settings-section">
-          <IonItem button className="settings-item" lines="none">
-            <IonIcon slot="start" icon={banOutline} className="settings-icon" />
-
-            <IonLabel>Blocked users</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-
-          <IonItem button className="settings-item" lines="none">
-            <IonIcon
-              slot="start"
-              icon={lockClosedOutline}
-              className="settings-icon"
-            />
-
-            <IonLabel>Account privacy</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-        </IonList>
-        {/* SOCIAL */}
-        <IonList className="settings-list settings-section">
-          <IonItem button className="settings-item" lines="none">
-            <div slot="start" className="social-icon instagram">
-              ◎
-            </div>
-
-            <IonLabel>Follow on Instagram</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-
-          <IonItem button className="settings-item" lines="none">
-            <div slot="start" className="social-icon tiktok">
-              ♪
-            </div>
-
-            <IonLabel>Follow on TikTok</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-        </IonList>
-
-        {/* INFORMATION */}
-        <IonList className="settings-list settings-section">
-          <IonItem button className="settings-item" lines="none">
-            <IonIcon
-              slot="start"
-              icon={mailOutline}
-              className="settings-icon"
-            />
-
-            <IonLabel>Contact us</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-
-          <IonItem button className="settings-item" lines="none">
-            <IonIcon
-              slot="start"
-              icon={documentTextOutline}
-              className="settings-icon"
-            />
-
-            <IonLabel>Terms & Conditions</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-
-          <IonItem button className="settings-item" lines="none">
-            <IonIcon
-              slot="start"
-              icon={shieldCheckmarkOutline}
-              className="settings-icon"
-            />
-
-            <IonLabel>Privacy policy</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-        </IonList>
-
-        {/* DANGER */}
-        <IonList className="settings-list settings-section danger-section">
-          <IonItem
-            button
-            className="settings-item danger-item"
-            lines="none"
-            onClick={() => setShowDeleteAlert(true)}
-          >
-            <IonLabel>Delete account</IonLabel>
-
-            <IonIcon
-              slot="end"
-              icon={arrowForwardOutline}
-              className="settings-arrow"
-            />
-          </IonItem>
-
-          <IonItem
-            button
-            className="settings-item logout-item"
-            lines="none"
-            onClick={() => setShowLogoutAlert(true)}
-          >
-            <IonLabel>Log out</IonLabel>
-          </IonItem>
-        </IonList>
-
-        <IonAlert
-          isOpen={showLogoutAlert}
-          onDidDismiss={() => setShowLogoutAlert(false)}
-          header="Log out"
-          message={`Log out of ${user?.username ?? "your account"}?`}
-          buttons={[
-            { text: "Cancel", role: "cancel" },
-            { text: "Log out", role: "destructive", handler: handleLogout },
-          ]}
+          {user?.profilePhoto ? (
+            <img src={user.profilePhoto} alt="" />
+          ) : (
+            <IonIcon icon={personCircleOutline} />
+          )}
+          <span>
+            <strong>@{user?.username}</strong>
+            <small>Manage your account</small>
+          </span>
+          <IonIcon
+            className="settings-row-arrow"
+            icon={chevronForwardOutline}
+          />
+        </button>
+        <button
+          className="settings-profile-qr"
+          aria-label="My profile QR code"
+          onClick={() => history.push("/app/me/settings/invite")}
+        >
+          <IonIcon icon={qrCodeOutline} />
+        </button>
+      </div>
+      {!user?.emailVerified && (
+        <section className="settings-card settings-verify">
+          <SettingsLink
+            icon={mailOutline}
+            title="Verify your email"
+            description="Keep your account details up to date"
+            to="/verify-email"
+          />
+        </section>
+      )}
+      <h2 className="settings-section-label">YOUR EXPERIENCE</h2>
+      <section className="settings-card">
+        <SettingsLink
+          icon={colorPaletteOutline}
+          title="Appearance"
+          description={
+            preference === "system"
+              ? "Following your device"
+              : `${preference[0].toUpperCase()}${preference.slice(1)} theme`
+          }
+          to="/app/me/settings/appearance"
         />
-
-        <IonAlert
-          isOpen={showDeleteAlert}
-          onDidDismiss={() => setShowDeleteAlert(false)}
-          header="Delete account"
-          message="This permanently deletes your account and all your data. This cannot be undone."
-          buttons={[
-            { text: "Cancel", role: "cancel" },
-            {
-              text: "Delete",
-              role: "destructive",
-              handler: handleDeleteAccount,
-            },
-          ]}
+        <SettingsLink
+          icon={notificationsOutline}
+          title="Notifications"
+          description="Messages, friend activity & previews"
+          to="/app/notifications/settings"
         />
-      </IonContent>
-    </IonPage>
+        <SettingsLink
+          icon={qrCodeOutline}
+          title="Invite friends"
+          description="Your QR code, profile link & sharing"
+          to="/app/me/settings/invite"
+        />
+      </section>
+      <h2 className="settings-section-label">PRIVACY & ACCOUNT</h2>
+      <section className="settings-card">
+        <SettingsLink
+          icon={shieldCheckmarkOutline}
+          title="Account privacy"
+          description="Discovery, activity & message requests"
+          to="/app/me/settings/privacy"
+        />
+        <SettingsLink
+          icon={banOutline}
+          title="Blocked users"
+          description="Review your list and unblock people"
+          to="/app/me/settings/blocked"
+        />
+        <SettingsLink
+          icon={personOutline}
+          title="Account"
+          description="Profile, verification, log out & deletion"
+          to="/app/me/settings/account"
+        />
+      </section>
+      <h2 className="settings-section-label">HELP & INFORMATION</h2>
+      <section className="settings-card">
+        <SettingsLink
+          icon={helpCircleOutline}
+          title="Help & support"
+          description="Answers and support requests"
+          to="/app/me/settings/help"
+        />
+        <SettingsLink
+          icon={documentTextOutline}
+          title="Terms & conditions"
+          to="/app/me/settings/terms"
+        />
+        <SettingsLink
+          icon={shieldCheckmarkOutline}
+          title="Privacy policy"
+          to="/app/me/settings/privacy-policy"
+        />
+      </section>
+      {(config?.instagramUrl || config?.tiktokUrl) && (
+        <>
+          <h2 className="settings-section-label">KEEP IN TOUCH</h2>
+          <section className="settings-card">
+            {config.instagramUrl && (
+              <SettingsLink
+                icon={logoInstagram}
+                title="Follow on Instagram"
+                onClick={() => follow(config.instagramUrl)}
+              />
+            )}
+            {config.tiktokUrl && (
+              <SettingsLink
+                icon={logoTiktok}
+                title="Follow on TikTok"
+                onClick={() => follow(config.tiktokUrl)}
+              />
+            )}
+          </section>
+        </>
+      )}
+      <footer className="settings-footer">
+        <strong>LinkUp</strong>
+        <span>Good conversations start here.</span>
+      </footer>
+    </SettingsLayout>
   );
-};
-
-export default SettingsPage;
+}
+export default function SettingsPage() {
+  return (
+    <Switch>
+      <Route exact path="/app/me/settings/appearance">
+        <AppearanceSettingsPage />
+      </Route>
+      <Route exact path="/app/me/settings/privacy">
+        <PrivacySettingsPage />
+      </Route>
+      <Route exact path="/app/me/settings/blocked">
+        <BlockedUsersPage />
+      </Route>
+      <Route exact path="/app/me/settings/invite">
+        <InviteFriendsPage />
+      </Route>
+      <Route exact path="/app/me/settings/account">
+        <AccountSettingsPage />
+      </Route>
+      <Route exact path="/app/me/settings/help">
+        <HelpSupportPage />
+      </Route>
+      <Route exact path="/app/me/settings/contact">
+        <ContactSupportPage />
+      </Route>
+      <Route exact path="/app/me/settings/terms">
+        <LegalSettingsPage kind="terms" />
+      </Route>
+      <Route exact path="/app/me/settings/privacy-policy">
+        <LegalSettingsPage kind="privacy" />
+      </Route>
+      <Route exact path="/app/me/settings/deletion">
+        <LegalSettingsPage kind="deletion" />
+      </Route>
+      <Route>
+        <SettingsHome />
+      </Route>
+    </Switch>
+  );
+}
