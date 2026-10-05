@@ -34,6 +34,8 @@ import PublicRoute from "./routes/PublicRoute";
 import OnboardingRoute from "./routes/OnboardingRoute";
 import AuthOnlyRoute from "./routes/AuthOnlyRoute";
 import SplashScreen from "./components/SplashScreen";
+import ProfileInviteHandler from "./components/ProfileInviteHandler";
+
 
 setupIonicReact();
 
@@ -49,7 +51,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <IonReactRouter><NotificationProvider>
+    <IonReactRouter><NotificationProvider><ProfileInviteHandler />
       <Switch>
         <PublicRoute exact path="/">
           <LoginPage />

@@ -1,104 +1,37 @@
-// src/contexts/ThemeContext.tsx
-//
-// This is the ONLY new logic you need. It does one thing:
-// sets data-theme="light" | "dark" | "modern" on <html>.
-// The CSS in variables.scss handles the rest — no ion-* component
-// anywhere in your app needs to know a theme system exists.
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-// No extra package needed — plain localStorage works fine in both the
-// browser and inside a Capacitor WebView, so this avoids the
-// @capacitor/preferences ERESOLVE conflict entirely.
-// (If you later want native-secure storage, swap the two localStorage
-// lines below for @capacitor/preferences' get/set once your dependency
-// versions are aligned.)
-
-export type LinkUpTheme = "light" | "dark" | "modern";
-
-interface ThemeContextValue {
-  theme: LinkUpTheme;
-  setTheme: (theme: LinkUpTheme) => void;
-}
-
+export type LinkUpTheme = 'light' | 'dark' | 'modern';
+export type ThemePreference = LinkUpTheme | 'system';
+interface ThemeContextValue { theme: LinkUpTheme; preference: ThemePreference; setTheme: (theme: ThemePreference) => void; }
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-
-const STORAGE_KEY = "linkup-theme";
-
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [theme, setThemeState] = useState<LinkUpTheme>("light");
-
-  // Load saved preference on app start
+const STORAGE_KEY = 'linkup-theme';
+const valid = (value: unknown): value is ThemePreference => ['light', 'dark', 'modern', 'system'].includes(value as string);
+function readPreference(): ThemePreference {
+  try { const stored = localStorage.getItem(STORAGE_KEY); return valid(stored) ? stored : 'system'; }
+  catch { return 'system'; }
+}
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [preference, setPreference] = useState<ThemePreference>(readPreference);
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const theme: LinkUpTheme = preference === 'system' ? systemDark ? 'dark' : 'light' : preference;
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "light" || saved === "dark" || saved === "modern") {
-      applyTheme(saved as LinkUpTheme);
-    } else {
-      // No saved preference — default to system dark/light, ignore for 'modern'
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      applyTheme(prefersDark ? "dark" : "light");
-    }
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const change = () => setSystemDark(media.matches);
+    media.addEventListener('change', change);
+    const storage = (event: StorageEvent) => { if (event.key === STORAGE_KEY) setPreference(valid(event.newValue) ? event.newValue : 'system'); };
+    window.addEventListener('storage', storage);
+    return () => { media.removeEventListener('change', change); window.removeEventListener('storage', storage); };
   }, []);
-
-  const applyTheme = (next: LinkUpTheme) => {
-    document.documentElement.setAttribute("data-theme", next);
-    setThemeState(next);
-    localStorage.setItem(STORAGE_KEY, next);
-  };
-
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme: applyTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
+  const setTheme = useCallback((next: ThemePreference) => {
+    if (!valid(next)) return;
+    setPreference(next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* Keep the selected theme for this session. */ }
+  }, []);
+  return <ThemeContext.Provider value={{ theme, preference, setTheme }}>{children}</ThemeContext.Provider>;
 };
-
 export const useLinkUpTheme = () => {
-  const ctx = useContext(ThemeContext);
-  if (!ctx)
-    throw new Error("useLinkUpTheme must be used within a ThemeProvider");
-  return ctx;
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error('useLinkUpTheme must be used within a ThemeProvider');
+  return context;
 };
-
-/* ==========================================================
-   USAGE
-
-   1. Wrap your app once, in App.tsx:
-
-      import { ThemeProvider } from './contexts/ThemeContext';
-
-      const App: React.FC = () => (
-        <ThemeProvider>
-          <IonApp>
-            ...your existing routes/components, completely unchanged...
-          </IonApp>
-        </ThemeProvider>
-      );
-
-   2. Anywhere you want a theme switcher (e.g. Settings page):
-
-      import { useLinkUpTheme } from '../contexts/ThemeContext';
-      import { IonSegment, IonSegmentButton, IonLabel } from '@ionic/react';
-
-      const ThemeSwitcher: React.FC = () => {
-        const { theme, setTheme } = useLinkUpTheme();
-        return (
-          <IonSegment
-            value={theme}
-            onIonChange={(e) => setTheme(e.detail.value as any)}
-          >
-            <IonSegmentButton value="light"><IonLabel>Light</IonLabel></IonSegmentButton>
-            <IonSegmentButton value="dark"><IonLabel>Dark</IonLabel></IonSegmentButton>
-            <IonSegmentButton value="modern"><IonLabel>Modern</IonLabel></IonSegmentButton>
-          </IonSegment>
-        );
-      };
-
-   That's it. Every ion-button, ion-card, ion-toolbar, ion-item,
-   your chat bubbles, everything — already reads the CSS variables
-   at paint time, so they instantly reflect the new theme.
-   No prop drilling, no conditional rendering, no re-fetching data.
-   ========================================================== */

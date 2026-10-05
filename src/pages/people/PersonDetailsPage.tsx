@@ -138,8 +138,12 @@ const PersonDetailPage: React.FC = () => {
   const handleMessage = async () => {
     try {
       const conversation = await getOrCreateDirectConversation(person.id);
-      history.push(`/app/friend-chat/${conversation.conversationId}`, { conversation });
-    } catch { toast.error("Unable to open this conversation."); }
+      history.push(`/app/friend-chat/${conversation.conversationId}`, {
+        conversation,
+      });
+    } catch {
+      toast.error("Unable to open this conversation.");
+    }
   };
 
   const handleShare = async () => {
@@ -347,7 +351,7 @@ const PersonDetailPage: React.FC = () => {
         {connectionStatus === "REQUEST_RECEIVED" && (
           <button
             className="action-btn action-btn--connect"
-            onClick={() => history.push("/app/friends")}
+            onClick={() => history.push("/app/friends?tab=requests")}
           >
             <IonIcon icon={personAddOutline} />
             Respond

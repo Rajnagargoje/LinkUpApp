@@ -20,7 +20,7 @@ import HomePage from "./pages/homePage/HomePage";
 import ChatPage from "./pages/roomchat/RoomChatPage";
 import OneTwoOneChat from "./pages/randomchat/OneTwoOneChat";
 
-import "./AppTabs.scss";
+import "./Apptabs.scss";
 import SettingsPage from "./pages/profile/SettingsPage";
 import ProfilePage from "./pages/profile/Me";
 import PeoplePage from "./pages/people/PeoplePage";
@@ -126,7 +126,7 @@ const AppTabs: React.FC = () => {
         <OneTwoOneChat />
       </Route>
       {/* Settings page */}
-      <Route exact path="/app/me/settings">
+      <Route path="/app/me/settings">
         <SettingsPage />
       </Route>
       {/* Person detail — opened from the People grid */}

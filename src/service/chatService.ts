@@ -57,7 +57,7 @@ export async function markConversationRead(
   const response = await axiosClient.patch(ENDPOINTS.markConversationRead(conversationId), null, {
     params: { messageId },
   });
-  await clearDeliveredMessages(conversationId, messageId);
+  await clearDeliveredMessages(conversationId, messageId).catch(() => {});
   return response;
 }
 
@@ -80,4 +80,11 @@ export async function editMessage(messageId: number, content: string) {
 
 export async function deleteMessageForEveryone(messageId: number) {
   return axiosClient.delete(ENDPOINTS.message(messageId));
+}
+
+/** Mute alerts for this participant; unread messages are still counted. */
+export async function setConversationMuted(conversationId: number, muted: boolean) {
+  await axiosClient.patch(`${ENDPOINTS.conversations}/${conversationId}/mute`, null, {
+    params: { value: muted },
+  });
 }

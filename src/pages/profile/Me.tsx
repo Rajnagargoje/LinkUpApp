@@ -6,6 +6,7 @@ import {
   IonAvatar,
   IonRow,
   IonSpinner,
+  useIonRouter,
 } from "@ionic/react";
 
 import {
@@ -75,7 +76,7 @@ const PREMIUM_SLIDES = [
 const ProfilePage: React.FC = () => {
   const history = useHistory();
   const { user, refreshUser } = useAuth();
-
+  const router = useIonRouter();
   const [activeTab, setActiveTab] = useState<Tab>("about");
 
   // Skipped for now per request — kept as local-only toggles, not
@@ -139,7 +140,7 @@ const ProfilePage: React.FC = () => {
   const handleEditProfile = () => {
     // Point this at your real edit-profile route once it's registered
     // (you already have a MyProfile page under pages/menu/pages).
-    history.push("/app/menu/my-profile");
+    router.push("/app/account/edit", "forward");
   };
 
   const displayName = user?.username || user?.username || "Your profile";
@@ -177,9 +178,19 @@ const ProfilePage: React.FC = () => {
         {/* Profile Section */}
         <section className="profile-section">
           <div className="profile-avatar-ring">
-            <svg viewBox="0 0 160 160" className="profile-ring-svg" aria-hidden="true">
+            <svg
+              viewBox="0 0 160 160"
+              className="profile-ring-svg"
+              aria-hidden="true"
+            >
               <defs>
-                <linearGradient id="profileRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient
+                  id="profileRingGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
                   <stop offset="0%" stopColor="#667eea" />
                   <stop offset="100%" stopColor="#764ba2" />
                 </linearGradient>
@@ -191,7 +202,9 @@ const ProfilePage: React.FC = () => {
                 r="74"
                 className="profile-ring-progress"
                 strokeDasharray={2 * Math.PI * 74}
-                strokeDashoffset={2 * Math.PI * 74 * (1 - profileCompletion / 100)}
+                strokeDashoffset={
+                  2 * Math.PI * 74 * (1 - profileCompletion / 100)
+                }
               />
             </svg>
 

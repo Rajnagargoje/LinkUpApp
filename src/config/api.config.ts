@@ -12,12 +12,9 @@
 // real device/emulator — you'll need your machine's LAN IP (or 10.0.2.2
 // for the Android emulator) once you're off the browser.
 
-export const API_HOST =
-  import.meta.env.VITE_API_HOST ||
-  "http://linkup-api-prod.eba-wckd2kki.ap-south-1.elasticbeanstalk.com".replace(
-    /\/$/,
-    "",
-  );
+export const API_HOST = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8081"
+).replace(/\/$/, "");
 
 export const API_BASE_URL = `${API_HOST}/api`;
 
@@ -66,7 +63,8 @@ export const ENDPOINTS = {
   connectionStatus: (publicId: string) => `/connections/status/${publicId}`,
 
   unfriend: (publicId: string) => `/connections/${publicId}`,
-
+ blockUser: (publicId: string) => `/connections/${publicId}/block`,
+ reportUser: (publicId: string) => `/connections/${publicId}/report`,
   // -----------------------------
   // FRIEND CHAT
   // -----------------------------
