@@ -1,72 +1,281 @@
-import React from "react";
-import { fireEvent, render, screen, act } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import OneTwoOneChat from "./OneTwoOneChat";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import socketService from "../../service/socketService";
+import { Preferences } from "./randomChat.types";
+import useRandomChat from "./useRandomChat";
 
-vi.mock("../../contexts/AuthContext", () => ({ useAuth: () => ({ user: { username: "alice" } }) }));
-vi.mock("../../service/socketService", () => ({ default: {
-  isConnected: vi.fn(() => true), onConnectionChange: vi.fn(() => vi.fn()),
-  subscribe: vi.fn(), unsubscribe: vi.fn(), publish: vi.fn(() => true),
-} }));
-vi.mock("@ionic/react", async () => {
-  const React = await import("react");
-  const box = ({ children }: any) => <div>{children}</div>;
-  return {
-    IonPage: box, IonHeader: box, IonFooter: box, IonToolbar: box, IonButtons: box, IonTitle: box,
-    IonBackButton: () => null, IonIcon: () => null, IonSpinner: () => null, IonAlert: () => null,
-    IonContent: React.forwardRef(({ children }: any, ref) => {
-      React.useImperativeHandle(ref, () => ({ scrollToBottom: vi.fn() }));
-      return <div>{children}</div>;
-    }),
-    IonButton: ({ children, onClick, disabled, "aria-label": label }: any) => <button onClick={onClick} disabled={disabled} aria-label={label}>{children}</button>,
-    IonInput: ({ onIonInput, onKeyDown, value, disabled, "aria-label": label }: any) => <input aria-label={label} value={value} disabled={disabled} onKeyDown={onKeyDown} onChange={e => onIonInput({ detail: { value: e.target.value } })} />,
-  };
-});
-
-function event(payload: object) {
+vi.mock("../../contexts/NotificationContext", () => ({
+  useNotifications: () => ({ revision: 0 }),
+}));
+vi.mock("../../service/socketService", () => ({
+  default: {
+    isConnected: vi.fn(() => true),
+    onConnectionChange: vi.fn(() => vi.fn()),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+    publish: vi.fn(() => true),
+  },
+}));
+const prefs: Preferences = {
+  language: "Hindi",
+  interests: ["Music"],
+  aiFallback: true,
+};
+function emit(payload: object) {
   const callback = vi.mocked(socketService.subscribe).mock.calls.at(-1)![2];
   act(() => callback(payload, {} as any));
 }
-
-beforeEach(() => { vi.clearAllMocks(); });
-describe("random chat", () => {
-  it("waits for matching and displays only server-confirmed messages", () => {
-    render(<OneTwoOneChat />);
-    expect(screen.getByLabelText("Message")).toBeDisabled();
-    fireEvent.click(screen.getByText("New chat"));
-    expect(socketService.publish).toHaveBeenCalledWith("/app/random/join", { language: "", interests: [] });
-    event({ type: "WAITING" });
-    event({ type: "MATCHED", matchId: "match1", partner: "bob" });
-    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Hello" } });
-    fireEvent.click(screen.getByLabelText("Send message"));
-    expect(socketService.publish).toHaveBeenCalledWith("/app/random/message", { matchId: "match1", content: "Hello" });
-    expect(screen.queryByText("Hello")).toBeNull();
-    event({ type: "MESSAGE", matchId: "match1", id: "m1", sender: "alice", content: "Hello", timeStamp: "2026-09-19T12:00:00Z" });
-    expect(screen.getByText("Hello")).toBeInTheDocument();
-    event({ type: "MESSAGE", matchId: "old", id: "m2", sender: "bob", content: "Stale", timeStamp: "2026-09-19T12:00:00Z" });
-    expect(screen.queryByText("Stale")).toBeNull();
+function setup(ai = false) {
+  const view = renderHook(() => useRandomChat("alice"));
+  act(() => view.result.current.start(prefs));
+  emit({ type: "WAITING", aiAvailable: true, fallbackSeconds: 15 });
+  emit({
+    type: "MATCHED",
+    matchId: "match1",
+    selfId: "u:alice",
+    partner: ai ? "Aanya" : "Bob",
+    partnerKind: ai ? "AI" : "HUMAN",
   });
-
-  it("waits for leave acknowledgement before searching for the next person", () => {
-    render(<OneTwoOneChat />);
-    event({ type: "MATCHED", matchId: "match1", partner: "bob" });
-    fireEvent.click(screen.getByText("Next person"));
-    expect(socketService.publish).toHaveBeenLastCalledWith("/app/random/leave", {});
-    event({ type: "ENDED", matchId: "match1", message: "Partner left" });
-    expect(socketService.publish).toHaveBeenLastCalledWith("/app/random/leave", {});
-    event({ type: "ENDED", message: "Chat ended." });
-    expect(socketService.publish).toHaveBeenLastCalledWith("/app/random/join", { language: "", interests: [] });
+  return view;
+}
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.useFakeTimers();
+  vi.mocked(socketService.publish).mockReturnValue(true);
+});
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+describe("random chat sessions", () => {
+  it("requests fallback only for the users selected preference and waits for server identity", () => {
+    const { result } = renderHook(() => useRandomChat("alice"));
+    act(() => result.current.start(prefs));
+    expect(socketService.publish).toHaveBeenCalledWith(
+      "/app/random/join",
+      prefs,
+    );
+    expect(result.current.phase).toBe("waiting");
+    act(() => vi.advanceTimersByTime(15000));
+    expect(result.current.partner).toBeNull(); // No client-side fictional match.
+    emit({
+      type: "MATCHED",
+      matchId: "ai1",
+      partner: "Aanya",
+      partnerKind: "AI",
+      selfId: "u:alice",
+      messages: [
+        {
+          id: "g",
+          senderId: "ai:aanya",
+          content: "Hi",
+          timeStamp: "2026-10-06T00:00:00Z",
+        },
+      ],
+    });
+    expect(result.current.partner?.kind).toBe("AI");
+    expect(result.current.messages[0].mine).toBe(false);
   });
-
-  it("disables sending on disconnect and leaves on unmount", () => {
-    const view = render(<OneTwoOneChat />);
-    event({ type: "MATCHED", matchId: "match1", partner: "bob" });
-    act(() => vi.mocked(socketService.onConnectionChange).mock.calls[0][0](false));
-    expect(screen.getByLabelText("Message")).toBeDisabled();
-    expect(screen.getByText(/Connection lost/)).toBeInTheDocument();
-    view.unmount();
-    expect(socketService.publish).toHaveBeenLastCalledWith("/app/random/leave", {});
+  it("merges acknowledgement into one bubble and retries with the same client ID", () => {
+    const { result } = setup();
+    act(() => {
+      result.current.send("hello");
+    });
+    const message = result.current.messages[0];
+    expect(message.status).toBe("sending");
+    act(() => vi.advanceTimersByTime(10000));
+    expect(result.current.messages[0].status).toBe("failed");
+    act(() => {
+      result.current.send(message.content, result.current.messages[0]);
+    });
+    emit({
+      type: "MESSAGE",
+      matchId: "match1",
+      id: "server1",
+      clientId: message.clientId,
+      senderId: "u:alice",
+      sender: "alice",
+      content: "hello",
+      timeStamp: "2026-10-06T00:00:00Z",
+    });
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].status).toBe("sent");
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/message",
+      expect.objectContaining({ clientId: message.clientId }),
+    );
+  });
+  it("requires leave acknowledgement before next and ignores old messages", () => {
+    const { result } = setup();
+    act(() => result.current.start(prefs));
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/leave",
+      {},
+    );
+    emit({ type: "ENDED", matchId: "match1" });
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/leave",
+      {},
+    );
+    emit({ type: "ENDED" });
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/join",
+      prefs,
+    );
+    emit({
+      type: "MATCHED",
+      matchId: "match2",
+      partner: "Meera",
+      partnerKind: "HUMAN",
+      selfId: "u:alice",
+    });
+    emit({ type: "MESSAGE", matchId: "match1", id: "old", content: "stale" });
+    expect(result.current.messages).toHaveLength(0);
+  });
+  it("keeps AI and human histories separate during a confirmed handoff", () => {
+    const { result } = setup(true);
+    emit({
+      type: "MESSAGE",
+      matchId: "match1",
+      id: "ai-greeting",
+      senderId: "ai:aanya",
+      content: "Hello",
+      timeStamp: "2026-10-06T00:00:00Z",
+    });
+    emit({
+      type: "HUMAN_OFFER",
+      matchId: "match1",
+      offerId: "offer",
+      expiresAt: new Date(Date.now() + 20000).toISOString(),
+    });
+    expect(result.current.partner?.kind).toBe("AI");
+    act(() =>
+      result.current.command("offer", { offerId: "offer", accept: true }),
+    );
+    emit({
+      type: "MATCHED",
+      matchId: "human",
+      selfId: "u:alice",
+      partner: "Bob",
+      partnerKind: "HUMAN",
+    });
+    expect(result.current.messages).toHaveLength(0);
+    expect(result.current.offer).toBeNull();
+    emit({
+      type: "MESSAGE",
+      matchId: "match1",
+      id: "late",
+      senderId: "ai:aanya",
+      content: "late response",
+    });
+    expect(result.current.messages).toHaveLength(0);
+  });
+  it("uses separate saved-companion state from actual friend requests", () => {
+    const { result } = setup(true);
+    act(() => result.current.command("companions/save"));
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/companions/save",
+      { matchId: "match1" },
+    );
+    emit({ type: "COMPANION_SAVED", matchId: "match1", saved: true });
+    expect(result.current.saved).toBe(true);
+    expect(result.current.connectionStatus).toBe("NONE");
+    expect(
+      vi
+        .mocked(socketService.publish)
+        .mock.calls.some((call) => call[0] === "/app/random/connect"),
+    ).toBe(false);
+  });
+  it("clears the previous human typing timer before an AI reply starts", () => {
+    const { result } = setup();
+    emit({ type: "TYPING", matchId: "match1", typing: true });
+    act(() => result.current.start(prefs));
+    emit({ type: "ENDED" });
+    emit({
+      type: "MATCHED",
+      matchId: "ai2",
+      selfId: "u:alice",
+      partner: "Tara",
+      partnerKind: "AI",
+    });
+    emit({ type: "TYPING", matchId: "ai2", typing: true });
+    act(() => vi.advanceTimersByTime(5000));
+    expect(result.current.typing).toBe(true);
+  });
+  it("does not let a late reply error interrupt the leave acknowledgement", () => {
+    const { result } = setup(true);
+    act(() => result.current.start(prefs));
+    emit({ type: "AI_ERROR", matchId: "match1", message: "old failure" });
+    expect(result.current.busy).toBe("end");
+    emit({
+      type: "MATCHED",
+      matchId: "late",
+      partnerKind: "HUMAN",
+      partner: "Old match",
+    });
+    expect(result.current.match).toBe("match1");
+    emit({ type: "ENDED" });
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/join",
+      prefs,
+    );
+  });
+  it("reflects genuine sent, received and accepted friend requests", () => {
+    const { result } = setup();
+    act(() => result.current.command("connect"));
+    emit({
+      type: "CONNECTION",
+      matchId: "match1",
+      connectionStatus: "REQUEST_SENT",
+    });
+    expect(result.current.connectionStatus).toBe("REQUEST_SENT");
+    emit({
+      type: "CONNECTION",
+      matchId: "match1",
+      connectionStatus: "REQUEST_RECEIVED",
+    });
+    act(() => result.current.command("connection/accept"));
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/connection/accept",
+      { matchId: "match1" },
+    );
+    emit({
+      type: "CONNECTION",
+      matchId: "match1",
+      connectionStatus: "CONNECTED",
+    });
+    expect(result.current.connectionStatus).toBe("CONNECTED");
+  });
+  it("does not silently rejoin after a disconnected session or accept its late reply", () => {
+    const { result, unmount } = setup(true);
+    act(() =>
+      vi.mocked(socketService.onConnectionChange).mock.calls[0][0](false),
+    );
+    expect(result.current.phase).toBe("ended");
+    emit({ type: "MESSAGE", matchId: "match1", id: "late", content: "late" });
+    expect(result.current.messages).toHaveLength(0);
+    vi.mocked(socketService.publish).mockClear();
+    act(() =>
+      vi.mocked(socketService.onConnectionChange).mock.calls[0][0](true),
+    );
+    expect(socketService.publish).not.toHaveBeenCalledWith(
+      "/app/random/join",
+      expect.anything(),
+    );
+    unmount();
     expect(socketService.unsubscribe).toHaveBeenCalledWith("random-chat");
+  });
+  it("leaves an active session and clears message timers when unmounted", () => {
+    const { result, unmount } = setup();
+    act(() => {
+      result.current.send("hello");
+    });
+    unmount();
+    expect(socketService.publish).toHaveBeenLastCalledWith(
+      "/app/random/leave",
+      {},
+    );
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
