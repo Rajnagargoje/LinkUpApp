@@ -1,6 +1,7 @@
 import { User } from "../common/user.model";
 import axiosClient from "./axiosClient";
 import { ENDPOINTS } from "../config/api.config";
+import { sessionHttp, SessionResponse, flushRevocations } from "./authSession";
 
 export interface LoginPayload {
   username: string; // accepted as either username OR email by the backend
@@ -30,25 +31,27 @@ export interface UsernameAvailability {
 }
 
 /**
- * POST /api/user/login
- * Backend returns { status, message, data: "<jwt>" } — data is the raw
- * token string, not an object.
+ * POST /api/auth/session/login
+ * Uses the renewable-session endpoint; older APKs can still use /user/login.
  */
 export async function login(payload: LoginPayload) {
-  return axiosClient.post<ApiEnvelope<string>>(ENDPOINTS.login, payload);
+  return sessionHttp.post<ApiEnvelope<SessionResponse>>(
+    "/auth/session/login",
+    payload,
+  );
 }
 
 /**
- * POST /api/user/register
+ * POST /api/auth/session/register
  * Now returns a token immediately alongside the created user, so the
  * frontend never needs a separate login call right after signup —
  * onboarding, email verification, and photo upload all need an
  * authenticated session from the very first screen.
  */
 export async function register(payload: RegisterPayload) {
-  return axiosClient.post<ApiEnvelope<RegisterResponseData>>(
-    ENDPOINTS.register,
-    payload
+  return sessionHttp.post<ApiEnvelope<SessionResponse>>(
+    "/auth/session/register",
+    payload,
   );
 }
 
@@ -59,7 +62,7 @@ export async function register(payload: RegisterPayload) {
 export async function checkUsernameAvailability(username: string) {
   return axiosClient.get<ApiEnvelope<UsernameAvailability>>(
     ENDPOINTS.checkUsername,
-    { params: { username } }
+    { params: { username } },
   );
 }
 
@@ -91,19 +94,14 @@ export interface UpdateProfilePayload {
 }
 
 export async function updateProfile(payload: UpdateProfilePayload) {
-  return axiosClient.patch<ApiEnvelope<User>>(
-    ENDPOINTS.updateProfile,
-    payload
-  );
+  return axiosClient.patch<ApiEnvelope<User>>(ENDPOINTS.updateProfile, payload);
 }
 
 /**
- * Best-effort server-side logout (flips status -> OFFLINE). JWTs are
- * stateless, so the client-side token wipe in AuthContext is what
- * actually matters — this call is allowed to fail silently.
+ * Sends queued per-device revocations, including logouts made while offline.
  */
 export async function logout() {
-  return axiosClient.post(ENDPOINTS.logout);
+  return flushRevocations();
 }
 
 /**
@@ -140,7 +138,10 @@ export async function verifyEmailCode(code: string) {
  * the user's photo list and returns the updated profile, so there's no
  * need for a follow-up PATCH /me after each photo.
  */
-export async function uploadPhoto(file: File | Blob, onProgress?: (pct: number) => void) {
+export async function uploadPhoto(
+  file: File | Blob,
+  onProgress?: (pct: number) => void,
+) {
   const formData = new FormData();
   formData.append("file", file);
   // Deliberately NOT setting Content-Type here — the browser needs to
@@ -165,7 +166,7 @@ export async function deletePhoto(url: string) {
 export async function updateLocation(
   username: string,
   latitude: number,
-  longitude: number
+  longitude: number,
 ) {
   return axiosClient.post(ENDPOINTS.updateLocation(username), {
     latitude,

@@ -2,7 +2,7 @@ import { Capacitor, PluginListenerHandle } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import axiosClient from "./axiosClient";
 import { API_BASE_URL } from "../config/api.config";
-import { getToken } from "./tokenStorage";
+import { getToken, getSessionEpoch } from "./tokenStorage";
 
 const TOKEN_KEY = "linkup_push_token";
 export const supportsPush = () => Capacitor.getPlatform() === "android";
@@ -34,12 +34,12 @@ export async function attachPushListeners(callbacks: {
   if (!supportsPush()) return () => {};
   const handles: PluginListenerHandle[] = [];
   handles.push(await PushNotifications.addListener("registration", async token => {
-    const session = getToken();
-    if (!session) return;
+    const session = getSessionEpoch();
+    if (!getToken()) return;
     try {
       await axiosClient.post("/notifications/devices", { token: token.value });
-      if (getToken() === session) { localStorage.setItem(TOKEN_KEY, token.value); callbacks.registered(); }
-    } catch { callbacks.error("Couldn't register this device. Try enabling notifications again."); }
+      if (getSessionEpoch() === session) { localStorage.setItem(TOKEN_KEY, token.value); callbacks.registered(); }
+    } catch { if (getSessionEpoch() === session) callbacks.error("Couldn't register this device. Try enabling notifications again."); }
   }));
   handles.push(await PushNotifications.addListener("registrationError", () => callbacks.error("Push setup is unavailable. Check the Firebase configuration and try again.")));
   handles.push(await PushNotifications.addListener("pushNotificationReceived", notification => {
@@ -56,6 +56,7 @@ export async function detachPushDevice() {
   if (!supportsPush()) return;
   const deviceToken = localStorage.getItem(TOKEN_KEY);
   const authToken = getToken();
+  const owner = getSessionEpoch();
   localStorage.removeItem(TOKEN_KEY);
   // Raw fetch avoids a forced-logout interceptor loop when a session has already expired.
   if (deviceToken && authToken) {
@@ -64,6 +65,7 @@ export async function detachPushDevice() {
       body: JSON.stringify({ token: deviceToken }), signal: AbortSignal.timeout(5000),
     }).catch(() => {});
   }
+  if (getSessionEpoch() !== owner && getToken()) return; // A newer login owns push registration now.
   await PushNotifications.removeAllDeliveredNotifications().catch(() => {});
   if (deviceToken) await PushNotifications.unregister().catch(() => {});
 }

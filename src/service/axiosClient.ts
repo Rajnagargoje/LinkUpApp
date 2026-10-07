@@ -1,47 +1,54 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config/api.config";
-import { getToken } from "./tokenStorage";
+import { ensureFreshToken } from "./authSession";
+import {
+  clearSession,
+  getSessionEpoch,
+  getToken,
+  SessionChangedError,
+} from "./tokenStorage";
+export { AUTH_LOGOUT_EVENT } from "./tokenStorage";
 
-export const baseURL = API_BASE_URL;
-
-// Fired whenever the backend tells us the session is no longer valid
-// (401/403). AuthContext listens for this and clears state + redirects,
-// so ANY screen making an API call gets a consistent forced-logout,
-// not just the one that happened to trigger the request.
-export const AUTH_LOGOUT_EVENT = "linkup:auth-logout";
-
-const axiosClient = axios.create({
-  baseURL,
-  timeout: 15000,
-});
-
-axiosClient.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    // Standard bearer scheme — matches what the backend's login endpoint
-    // issues and what Spring Security expects in the Authorization header.
-    config.headers.Authorization = `Bearer ${token}`;
+declare module "axios" {
+  interface AxiosRequestConfig {
+    _sessionEpoch?: number;
+    _authRetried?: boolean;
   }
+}
+export const baseURL = API_BASE_URL;
+const axiosClient = axios.create({ baseURL, timeout: 15000 });
+
+axiosClient.interceptors.request.use(async (config) => {
+  const owner = config._sessionEpoch ?? getSessionEpoch();
+  const token = await ensureFreshToken();
+  if (owner !== getSessionEpoch()) throw new SessionChangedError();
+  config._sessionEpoch = owner;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  else delete config.headers.Authorization;
   return config;
 });
-
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const status = error.response?.status;
-
-    if (status === 401 || status === 403) {
-      // Session expired / invalid / revoked. Let AuthContext handle
-      // clearing storage + redirecting — we just broadcast it here so
-      // every caller (chat pages, settings, etc.) reacts the same way.
-      window.dispatchEvent(new CustomEvent(AUTH_LOGOUT_EVENT));
+  async (error) => {
+    const config = error.config;
+    const sent = config?.headers?.Authorization;
+    if (
+      error.response?.status !== 401 ||
+      !config ||
+      typeof sent !== "string" ||
+      !sent.startsWith("Bearer ") ||
+      config._sessionEpoch !== getSessionEpoch()
+    )
+      throw error;
+    if (config._authRetried) {
+      if (sent === `Bearer ${getToken()}`) await clearSession(true);
+      throw error;
     }
-
-    // Always reject so the calling code's try/catch actually runs —
-    // silently swallowing 401s here previously meant callers thought
-    // requests had "succeeded" with `undefined`.
-    return Promise.reject(error);
-  }
+    config._authRetried = true;
+    const token = await ensureFreshToken(true, sent.slice(7));
+    if (!token || config._sessionEpoch !== getSessionEpoch()) throw error;
+    config.headers.Authorization = `Bearer ${token}`;
+    return axiosClient.request(config);
+  },
 );
-
 export default axiosClient;
